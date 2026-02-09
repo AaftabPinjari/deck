@@ -15,6 +15,7 @@ import {
     SquareAsterisk,
     ChevronRight,
     Table,
+    ExternalLink,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { BlockType } from '../../store/useDocumentStore';
@@ -44,6 +45,7 @@ const ITEMS = [
     { type: 'table', label: 'Table', icon: Table, description: 'Add a simple table.' },
     { type: 'column_container', label: '2 Columns', icon: Table, description: 'Split content into 2 columns.', columns: 2 },
     { type: 'column_container', label: '3 Columns', icon: Table, description: 'Split content into 3 columns.', columns: 3 },
+    { type: 'bookmark', label: 'Bookmark', icon: ExternalLink, description: 'Save a link with a preview.' },
 ] as const;
 
 export function SlashMenu({ anchorRect, onSelect, onClose, query }: SlashMenuProps) {

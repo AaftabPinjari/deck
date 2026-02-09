@@ -6,6 +6,7 @@ import { TableBlock } from './TableBlockComponent';
 import { ColumnBlock } from './ColumnBlock';
 import { BlockMenu } from './BlockMenu';
 import { ResizableImage } from './ResizableImage';
+import { BookmarkBlock } from './BookmarkBlock';
 
 interface BlockProps {
     block: BlockType;
@@ -373,6 +374,8 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                 <TableBlock block={block} onUpdate={onUpdate!} />
             ) : block.type === 'column_container' ? (
                 <ColumnBlock block={block} documentId={documentId} onUpdate={onUpdate!} />
+            ) : block.type === 'bookmark' ? (
+                <BookmarkBlock block={block} onUpdate={onUpdate!} onKeyDown={onKeyDown} />
             ) : (
                 <div
                     ref={contentRef}
