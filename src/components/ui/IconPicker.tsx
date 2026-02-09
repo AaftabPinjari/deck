@@ -1,6 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
-import { Smile } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 
 interface IconPickerProps {
@@ -9,7 +8,7 @@ interface IconPickerProps {
     asChild?: boolean;
 }
 
-export function IconPicker({ onChange, children, asChild }: IconPickerProps) {
+export function IconPicker({ onChange, children }: IconPickerProps) {
     const { theme } = useSettingsStore();
     const [isOpen, setIsOpen] = useState(false);
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -61,21 +60,4 @@ export function IconPicker({ onChange, children, asChild }: IconPickerProps) {
     );
 }
 
-export function SingleIconPicker({ icon, onChange }: { icon?: string | null, onChange: (icon: string) => void }) {
-    return (
-        <IconPicker onChange={onChange}>
-            <div className="group relative flex items-center justify-center h-20 w-20 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer text-6xl select-none">
-                {icon ? (
-                    <span>{icon}</span>
-                ) : (
-                    <Smile className="h-8 w-8 text-neutral-400 group-hover:text-neutral-600 dark:text-neutral-500" />
-                )}
-                {icon && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-xs text-white font-medium">Change</span>
-                    </div>
-                )}
-            </div>
-        </IconPicker>
-    );
-}
+

@@ -20,7 +20,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { EditorSkeleton } from '../Skeletons/EditorSkeleton';
-import { SingleIconPicker } from '../ui/IconPicker';
+import { IconPicker } from '../ui/IconPicker';
 import { CoverImagePicker } from '../ui/CoverImagePicker';
 import { ImageIcon, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -329,170 +329,218 @@ export function Editor() {
 
     if (!currentDoc) return <div>Page not found</div>;
 
+    const hasCover = !!currentDoc.coverImage;
+    const hasIcon = !!currentDoc.icon;
+
     return (
         <div className={cn(
-            "mx-auto py-12 px-12 pb-32 transition-all duration-300",
-            currentDoc.isFullWidth ? "max-w-full px-24" : "max-w-3xl",
+            "transition-all duration-300",
             currentDoc.fontStyle === 'serif' && "font-serif",
             currentDoc.fontStyle === 'mono' && "font-mono",
             (!currentDoc.fontStyle || currentDoc.fontStyle === 'sans') && "font-sans"
         )}>
+            {/* Cover Image - Edge to Edge */}
+            <div className={cn(
+                "group/cover relative w-full",
+                hasCover ? "h-[30vh] min-h-[200px]" : "h-0"
+            )}>
+                {hasCover && (
+                    <>
+                        <div
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${currentDoc.coverImage})` }}
+                        />
+                        {/* Gradient overlay for better text readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
 
-            {/* Cover Image */}
-            <div className="group relative h-[20vh] w-full mb-8 group/cover">
-                {currentDoc.coverImage ? (
-                    <div
-                        className="w-full h-full bg-cover bg-center rounded-md"
-                        style={{ backgroundImage: `url(${currentDoc.coverImage})` }}
-                    />
-                ) : (
-                    <div className="w-full h-full hidden group-hover/cover:block bg-neutral-100 dark:bg-neutral-800 rounded-md transition-all">
-                        <div className="h-full flex items-center justify-center text-neutral-400">
+                        {/* Cover controls */}
+                        <div className="absolute bottom-3 right-4 opacity-0 group-hover/cover:opacity-100 transition-opacity flex gap-2">
                             <CoverImagePicker onChange={(url) => updateDocument(documentId, { coverImage: url })}>
-                                <button className="flex items-center gap-2 text-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 px-3 py-2 rounded text-neutral-500">
-                                    <ImageIcon className="h-4 w-4" />
-                                    Add cover
+                                <button className="text-xs bg-white/90 hover:bg-white dark:bg-neutral-800/90 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 px-3 py-1.5 rounded-md shadow-sm flex items-center gap-1.5 font-medium">
+                                    <ImageIcon className="h-3.5 w-3.5" />
+                                    Change cover
                                 </button>
                             </CoverImagePicker>
-                        </div>
-                    </div>
-                )}
-
-                {currentDoc.coverImage && (
-                    <div className="absolute bottom-2 right-2 opacity-0 group-hover/cover:opacity-100 transition-opacity flex gap-2">
-                        <CoverImagePicker onChange={(url) => updateDocument(documentId, { coverImage: url })}>
-                            <button className="text-xs bg-white/80 hover:bg-white dark:bg-black/50 dark:hover:bg-black/70 text-neutral-700 dark:text-neutral-300 px-2 py-1 rounded">
-                                Change cover
+                            <button
+                                onClick={() => updateDocument(documentId, { coverImage: undefined })}
+                                className="text-xs bg-white/90 hover:bg-white dark:bg-neutral-800/90 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 px-2 py-1.5 rounded-md shadow-sm"
+                            >
+                                <X className="h-3.5 w-3.5" />
                             </button>
-                        </CoverImagePicker>
-                        <button
-                            onClick={() => updateDocument(documentId, { coverImage: undefined })}
-                            className="text-xs bg-white/80 hover:bg-white dark:bg-black/50 dark:hover:bg-black/70 text-neutral-700 dark:text-neutral-300 px-2 py-1 rounded"
-                        >
-                            <X className="h-3 w-3" />
-                        </button>
-                    </div>
+                        </div>
+                    </>
                 )}
             </div>
 
-            {/* Icon Picker */}
-            <div className="mb-8 group">
-                <SingleIconPicker
-                    icon={currentDoc.icon}
-                    onChange={(icon) => updateDocument(documentId, { icon })}
-                />
-            </div>
+            {/* Content area with proper padding */}
+            <div className={cn(
+                "mx-auto px-12 pb-32",
+                currentDoc.isFullWidth ? "max-w-full px-24" : "max-w-3xl"
+            )}>
+                {/* Icon/Emoji - overlaps cover when present */}
+                <div className={cn(
+                    "relative group/icon",
+                    hasCover ? "-mt-10" : "mt-12"
+                )}>
+                    {hasIcon ? (
+                        <div className="relative inline-block">
+                            <span
+                                className={cn(
+                                    "text-7xl cursor-pointer select-none block",
+                                    hasCover && "drop-shadow-lg"
+                                )}
+                                onClick={() => {
+                                    // Open icon picker - handled by wrapper
+                                }}
+                            >
+                                <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>
+                                    <span className="hover:opacity-80 transition-opacity">{currentDoc.icon}</span>
+                                </IconPicker>
+                            </span>
+                            {/* Remove icon button */}
+                            <button
+                                onClick={() => updateDocument(documentId, { icon: undefined })}
+                                className="absolute -top-1 -right-1 opacity-0 group-hover/icon:opacity-100 transition-opacity bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded-full p-1"
+                            >
+                                <X className="h-3 w-3 text-neutral-600 dark:text-neutral-300" />
+                            </button>
+                        </div>
+                    ) : (
+                        /* Show add icon/cover buttons when hovering and nothing is set */
+                        <div className="h-10 opacity-0 group-hover/icon:opacity-100 transition-opacity flex items-center gap-2">
+                            <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>
+                                <button className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
+                                    <span className="text-lg">😀</span>
+                                    Add icon
+                                </button>
+                            </IconPicker>
+                            {!hasCover && (
+                                <CoverImagePicker onChange={(url) => updateDocument(documentId, { coverImage: url })}>
+                                    <button className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
+                                        <ImageIcon className="h-4 w-4" />
+                                        Add cover
+                                    </button>
+                                </CoverImagePicker>
+                            )}
+                        </div>
+                    )}
+                </div>
 
-            <input
-                className="w-full text-4xl font-bold outline-none bg-transparent placeholder:text-neutral-300 mb-8 text-neutral-800 dark:text-neutral-100 placeholder-opacity-50"
-                value={currentDoc.title}
-                onChange={(e) => updateDocument(documentId, { title: e.target.value })}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        if (currentDoc.content.length > 0) {
-                            const firstBlockId = currentDoc.content[0].id;
-                            const el = document.querySelector(`[data-block-id="${firstBlockId}"]`) as HTMLElement;
-                            el?.focus();
-                        }
-                    }
-                }}
-                placeholder="Untitled"
-            />
-
-            <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-            >
-                <SortableContext
-                    items={visibleBlocks}
-                    strategy={verticalListSortingStrategy}
-                >
-                    <div
-                        className="flex flex-col pb-32 min-h-[50vh] cursor-text"
-                        onClick={(e) => {
-                            // Only handle clicks directly on the container (empty space)
-                            if (e.target !== e.currentTarget) return;
-
-                            const content = currentDocRef.current?.content;
-                            if (!content || content.length === 0) return;
-
-                            const lastBlock = content[content.length - 1];
-
-                            // If last block is empty text, focus it
-                            if (lastBlock.type === 'text' && !lastBlock.content) {
-                                const el = document.querySelector(`[data-block-id="${lastBlock.id}"]`) as HTMLElement;
+                {/* Title */}
+                <input
+                    className={cn(
+                        "w-full text-4xl font-bold outline-none bg-transparent placeholder:text-neutral-300 text-neutral-800 dark:text-neutral-100 placeholder-opacity-50",
+                        hasIcon ? "mt-2 mb-4" : "mt-4 mb-8"
+                    )}
+                    value={currentDoc.title}
+                    onChange={(e) => updateDocument(documentId, { title: e.target.value })}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (currentDoc.content.length > 0) {
+                                const firstBlockId = currentDoc.content[0].id;
+                                const el = document.querySelector(`[data-block-id="${firstBlockId}"]`) as HTMLElement;
                                 el?.focus();
-                            } else {
-                                // Otherwise add new block at the end
-                                addBlock(lastBlock.id, 'text');
                             }
-                        }}
-                    >
-                        {(() => {
-                            const counts: Record<number, number> = {};
-
-                            return visibleBlocks.map((block, index) => {
-                                let blockIndex: number | undefined = undefined;
-                                const level = block.props?.level || 0;
-
-                                if (block.type === 'number') {
-                                    // Increment count for current level
-                                    counts[level] = (counts[level] || 0) + 1;
-                                    blockIndex = counts[level];
-
-                                    // Reset all deeper levels
-                                    for (let l = level + 1; l < 10; l++) {
-                                        counts[l] = 0;
-                                    }
-                                } else {
-                                    // Non-number block: reset counts for this level and all deeper
-                                    // This ensures lists break when interrupted by other content at the same level
-                                    for (let l = level; l < 10; l++) {
-                                        counts[l] = 0;
-                                    }
-                                }
-
-                                // Determine visual grouping
-                                const isList = ['bullet', 'number', 'todo'].includes(block.type);
-                                const prevBlock = index > 0 ? visibleBlocks[index - 1] : null;
-                                const isGrouped = isList && prevBlock && prevBlock.type === block.type;
-
-                                return (
-                                    <SortableBlock
-                                        key={block.id}
-                                        block={block}
-                                        documentId={documentId}
-                                        onChange={updateBlockContent}
-                                        onKeyDown={handleKeyDown}
-                                        onFocus={onFocusBlock}
-                                        onTypeChange={updateBlockType}
-                                        onSlashMenu={handleSlashMenu}
-                                        onUpdate={onUpdateBlock}
-                                        onDelete={deleteBlock}
-                                        onDuplicate={onDuplicateBlock}
-                                        index={blockIndex}
-                                        className={isGrouped ? "mt-0" : "mt-2"}
-                                    />
-                                );
-                            });
-                        })()}
-                    </div>
-                </SortableContext>
-            </DndContext>
-
-            {slashMenu?.isOpen && (
-                <SlashMenu
-                    anchorRect={slashMenu.anchorRect}
-                    onSelect={handleSlashSelect}
-                    onClose={() => setSlashMenu(null)}
-                    query={
-                        currentDoc.content.find(b => b.id === slashMenu.blockId)?.content.slice(1) || ''
-                    }
+                        }
+                    }}
+                    placeholder="Untitled"
                 />
-            )}
-            <FloatingToolbar />
+
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                >
+                    <SortableContext
+                        items={visibleBlocks}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        <div
+                            className="flex flex-col pb-32 min-h-[50vh] cursor-text"
+                            onClick={(e) => {
+                                // Only handle clicks directly on the container (empty space)
+                                if (e.target !== e.currentTarget) return;
+
+                                const content = currentDocRef.current?.content;
+                                if (!content || content.length === 0) return;
+
+                                const lastBlock = content[content.length - 1];
+
+                                // If last block is empty text, focus it
+                                if (lastBlock.type === 'text' && !lastBlock.content) {
+                                    const el = document.querySelector(`[data-block-id="${lastBlock.id}"]`) as HTMLElement;
+                                    el?.focus();
+                                } else {
+                                    // Otherwise add new block at the end
+                                    addBlock(lastBlock.id, 'text');
+                                }
+                            }}
+                        >
+                            {(() => {
+                                const counts: Record<number, number> = {};
+
+                                return visibleBlocks.map((block, index) => {
+                                    let blockIndex: number | undefined = undefined;
+                                    const level = block.props?.level || 0;
+
+                                    if (block.type === 'number') {
+                                        // Increment count for current level
+                                        counts[level] = (counts[level] || 0) + 1;
+                                        blockIndex = counts[level];
+
+                                        // Reset all deeper levels
+                                        for (let l = level + 1; l < 10; l++) {
+                                            counts[l] = 0;
+                                        }
+                                    } else {
+                                        // Non-number block: reset counts for this level and all deeper
+                                        // This ensures lists break when interrupted by other content at the same level
+                                        for (let l = level; l < 10; l++) {
+                                            counts[l] = 0;
+                                        }
+                                    }
+
+                                    // Determine visual grouping
+                                    const isList = ['bullet', 'number', 'todo'].includes(block.type);
+                                    const prevBlock = index > 0 ? visibleBlocks[index - 1] : null;
+                                    const isGrouped = isList && prevBlock && prevBlock.type === block.type;
+
+                                    return (
+                                        <SortableBlock
+                                            key={block.id}
+                                            block={block}
+                                            documentId={documentId}
+                                            onChange={updateBlockContent}
+                                            onKeyDown={handleKeyDown}
+                                            onFocus={onFocusBlock}
+                                            onTypeChange={updateBlockType}
+                                            onSlashMenu={handleSlashMenu}
+                                            onUpdate={onUpdateBlock}
+                                            onDelete={deleteBlock}
+                                            onDuplicate={onDuplicateBlock}
+                                            index={blockIndex}
+                                            className={isGrouped ? "mt-0" : "mt-2"}
+                                        />
+                                    );
+                                });
+                            })()}
+                        </div>
+                    </SortableContext>
+                </DndContext>
+
+                {slashMenu?.isOpen && (
+                    <SlashMenu
+                        anchorRect={slashMenu.anchorRect}
+                        onSelect={handleSlashSelect}
+                        onClose={() => setSlashMenu(null)}
+                        query={
+                            currentDoc.content.find(b => b.id === slashMenu.blockId)?.content.slice(1) || ''
+                        }
+                    />
+                )}
+                <FloatingToolbar />
+            </div>
         </div>
     );
 }
