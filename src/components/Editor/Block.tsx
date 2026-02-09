@@ -3,6 +3,7 @@ import { Block as BlockType } from '../../store/useDocumentStore';
 import { cn } from '../../lib/utils';
 import { GripVertical, Square, CheckSquare, Copy, Check, Info, Video, ChevronRight } from 'lucide-react';
 import { TableBlock } from './TableBlockComponent';
+import { ColumnBlock } from './ColumnBlock';
 import { BlockMenu } from './BlockMenu';
 
 interface BlockProps {
@@ -371,6 +372,8 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                 </div>
             ) : block.type === 'table' ? (
                 <TableBlock block={block} onUpdate={onUpdate!} />
+            ) : block.type === 'column_container' ? (
+                <ColumnBlock block={block} documentId={documentId} onUpdate={onUpdate!} />
             ) : (
                 <div
                     ref={contentRef}

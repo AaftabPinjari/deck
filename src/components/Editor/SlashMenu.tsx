@@ -21,7 +21,7 @@ import { BlockType } from '../../store/useDocumentStore';
 
 interface SlashMenuProps {
     anchorRect: DOMRect;
-    onSelect: (type: BlockType) => void;
+    onSelect: (type: BlockType, extraProps?: Record<string, any>) => void;
     onClose: () => void;
     query: string;
 }
@@ -42,6 +42,8 @@ const ITEMS = [
     { type: 'callout', label: 'Callout', icon: SquareAsterisk, description: 'Make writing stand out.' },
     { type: 'toggle', label: 'Toggle List', icon: ChevronRight, description: 'Toggles can hide and show content inside.' },
     { type: 'table', label: 'Table', icon: Table, description: 'Add a simple table.' },
+    { type: 'column_container', label: '2 Columns', icon: Table, description: 'Split content into 2 columns.', columns: 2 },
+    { type: 'column_container', label: '3 Columns', icon: Table, description: 'Split content into 3 columns.', columns: 3 },
 ] as const;
 
 export function SlashMenu({ anchorRect, onSelect, onClose, query }: SlashMenuProps) {
@@ -93,7 +95,8 @@ export function SlashMenu({ anchorRect, onSelect, onClose, query }: SlashMenuPro
                 e.preventDefault();
                 // Ensure we have a valid selection
                 if (filteredItems.length > 0) {
-                    onSelect(filteredItems[selectedIndex].type);
+                    const item = filteredItems[selectedIndex];
+                    onSelect(item.type, 'columns' in item ? { columns: item.columns } : undefined);
                 }
             } else if (e.key === 'Escape') {
                 onClose();
@@ -135,7 +138,10 @@ export function SlashMenu({ anchorRect, onSelect, onClose, query }: SlashMenuPro
                                 "flex items-center gap-2 p-2 cursor-pointer transition-colors",
                                 index === selectedIndex ? "bg-neutral-100 dark:bg-neutral-700" : "hover:bg-neutral-50 dark:hover:bg-neutral-700"
                             )}
-                            onClick={() => onSelect(item.type as BlockType)}
+                            onClick={() => {
+                                const extraProps = 'columns' in item ? { columns: item.columns } : undefined;
+                                onSelect(item.type as BlockType, extraProps);
+                            }}
                             onMouseEnter={() => setSelectedIndex(index)}
                         >
                             <div className="p-1 border border-neutral-200 dark:border-neutral-600 rounded bg-white dark:bg-neutral-900 shadow-sm">

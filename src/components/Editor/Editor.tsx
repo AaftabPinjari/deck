@@ -267,15 +267,26 @@ export function Editor() {
         }
     }, [addBlock, deleteBlock, updateBlockType, documentId, deleteBlockStore, updateBlockStore]); // Stable dependencies
 
-    const handleSlashSelect = useCallback((type: BlockType) => {
+    const handleSlashSelect = useCallback((type: BlockType, extraProps?: Record<string, any>) => {
         if (slashMenuRef.current && documentId) {
             const menu = slashMenuRef.current;
             // Forcefully clear the DOM content immediately to prevent persistence
             const el = document.querySelector(`[data-block-id="${menu.blockId}"]`) as HTMLElement;
             if (el) el.innerHTML = '';
 
-            // Updating atomically via store actions
-            updateBlockStore(documentId, menu.blockId, { type: type as BlockType, content: '' });
+            // Handle column_container initialization
+            if (type === 'column_container') {
+                const numColumns = extraProps?.columns || 2;
+                const emptyColumns = Array.from({ length: numColumns }, () => []);
+                updateBlockStore(documentId, menu.blockId, {
+                    type: type as BlockType,
+                    content: '',
+                    props: { columns: emptyColumns }
+                });
+            } else {
+                // Updating atomically via store actions
+                updateBlockStore(documentId, menu.blockId, { type: type as BlockType, content: '' });
+            }
 
             setSlashMenu(null);
             setFocusedBlockId(menu.blockId);
