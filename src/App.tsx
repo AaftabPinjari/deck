@@ -8,7 +8,7 @@ import { Breadcrumbs } from './components/Breadcrumbs';
 import { SearchCommand } from './components/SearchCommand';
 import { Loader2 } from 'lucide-react';
 import { supabase } from './lib/supabase';
-
+//hiyad99739@icubik.com -- admin email id
 // Lazy load heavy components
 const Editor = lazy(() => import('./components/Editor/Editor').then(m => ({ default: m.Editor })));
 const LandingPage = lazy(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage })));

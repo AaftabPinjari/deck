@@ -5,6 +5,7 @@ import { GripVertical, Square, CheckSquare, Copy, Check, Info, Video, ChevronRig
 import { TableBlock } from './TableBlockComponent';
 import { ColumnBlock } from './ColumnBlock';
 import { BlockMenu } from './BlockMenu';
+import { ResizableImage } from './ResizableImage';
 
 interface BlockProps {
     block: BlockType;
@@ -249,14 +250,12 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
             {block.type === 'image' ? (
                 <div className="w-full">
                     {block.content ? (
-                        <div className="relative group/image">
-                            <img src={block.content} alt="Block" className="max-w-full rounded-md shadow-sm" />
-                            <div className="absolute right-2 top-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
-                                <button className="p-1 bg-black/50 text-white rounded hover:bg-black/70 text-xs" onClick={() => onChange(block.id, '')}>
-                                    Edit
-                                </button>
-                            </div>
-                        </div>
+                        <ResizableImage
+                            src={block.content}
+                            initialWidth={block.props?.width || 100}
+                            onWidthChange={(width) => onUpdate?.(block.id, { props: { ...block.props, width } })}
+                            onClear={() => onChange(block.id, '')}
+                        />
                     ) : (
                         <input
                             className="w-full p-4 bg-neutral-100 dark:bg-neutral-800 rounded-md text-neutral-800 dark:text-neutral-200 outline-none border border-transparent focus:border-neutral-300 dark:focus:border-neutral-600 transition-colors placeholder:text-neutral-500"
