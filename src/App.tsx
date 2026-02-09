@@ -1,17 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { Editor } from './components/Editor/Editor';
 import { useDocumentStore } from './store/useDocumentStore';
 import { useSettingsStore } from './store/useSettingsStore';
-import { Login } from './components/Auth/Login';
-import { Signup } from './components/Auth/Signup';
 import { auth } from './services/auth';
 import { Breadcrumbs } from './components/Breadcrumbs';
 import { SearchCommand } from './components/SearchCommand';
 import { Loader2 } from 'lucide-react';
 import { supabase } from './lib/supabase';
-import { LandingPage } from './components/LandingPage';
+
+// Lazy load heavy components
+const Editor = lazy(() => import('./components/Editor/Editor').then(m => ({ default: m.Editor })));
+const LandingPage = lazy(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage })));
+const Login = lazy(() => import('./components/Auth/Login').then(m => ({ default: m.Login })));
+const Signup = lazy(() => import('./components/Auth/Signup').then(m => ({ default: m.Signup })));
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -43,7 +45,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!session) {
-    return <LandingPage />;
+    return (
+      <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-white"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}>
+        <LandingPage />
+      </Suspense>
+    );
   }
 
   return <>{children}</>;
@@ -85,8 +91,8 @@ function App() {
     <BrowserRouter>
       <SearchCommand />
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}><Login /></Suspense>} />
+        <Route path="/signup" element={<Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}><Signup /></Suspense>} />
 
 
         <Route path="/" element={
@@ -119,10 +125,10 @@ function App() {
               )
           } />
           <Route path=":documentId" element={
-            <>
-              <Breadcrumbs /> {/* Render Breadcrumbs here, assuming it's part of the main content area */}
+            <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}>
+              <Breadcrumbs />
               <Editor />
-            </>
+            </Suspense>
           } />
         </Route>
       </Routes>

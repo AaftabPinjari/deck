@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, useMemo, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
     ChevronRight,
@@ -53,7 +53,7 @@ interface DocumentItemProps {
     dropState?: { overId: string; position: DropPosition };
 }
 
-const DocumentItem = ({ document, level = 0, onDeleteLabel, isOverlay, dropState }: DocumentItemProps) => {
+const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteLabel, isOverlay, dropState }: DocumentItemProps) {
     const navigate = useNavigate();
     const { createDocument, toggleExpand, toggleFavorite, updateDocument } = useDocumentStore();
     const hasChildren = document.children.length > 0;
@@ -246,7 +246,7 @@ const DocumentItem = ({ document, level = 0, onDeleteLabel, isOverlay, dropState
             )}
         </div>
     );
-};
+});
 
 interface DocumentListProps {
     parentId?: string | null;
@@ -257,7 +257,6 @@ interface DocumentListProps {
 
 const DocumentList = ({ parentId = null, level = 0, onDeleteLabel, dropState }: DocumentListProps) => {
     const { documents, rootDocumentIds } = useDocumentStore();
-    console.log("Sidebar Render - Root IDs:", rootDocumentIds, "Docs Count:", Object.keys(documents).length);
 
     const docIds = parentId
         ? documents[parentId]?.children
@@ -321,21 +320,24 @@ export function Sidebar() {
         })
     );
 
-    const favorites = Object.values(documents).filter(doc => doc.isFavorite && !doc.isArchived);
+    const favorites = useMemo(() =>
+        Object.values(documents).filter(doc => doc.isFavorite && !doc.isArchived),
+        [documents]
+    );
 
-    const handleAddPage = async () => {
+    const handleAddPage = useCallback(async () => {
         const newId = await createDocument();
         navigate(`/${newId}`);
         setIsMobileOpen(false);
-    };
+    }, [createDocument, navigate]);
 
-    const confirmDelete = () => {
+    const confirmDelete = useCallback(() => {
         if (docToDelete) {
             archiveDocument(docToDelete.id);
             navigate('/');
             setDocToDelete(null);
         }
-    };
+    }, [docToDelete, archiveDocument, navigate]);
 
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;

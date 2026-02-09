@@ -74,10 +74,7 @@ export const useDocumentStore = create<DocumentState>()(
             fetchDocuments: async () => {
                 set({ isLoading: true, error: null });
                 try {
-                    console.log("Fetching documents...");
                     const { documents: remoteDocs, blocks: remoteBlocks } = await documentService.getDocuments();
-                    console.log("Fetched raw docs:", remoteDocs);
-                    console.log("Fetched raw blocks:", remoteBlocks);
 
                     // Reconstruct the state from flat Supabase tables
                     const documents: Record<string, Document> = {};
@@ -143,7 +140,6 @@ export const useDocumentStore = create<DocumentState>()(
                         }
                     });
 
-                    console.log("Tree constructed. Root IDs:", rootDocumentIds);
                     set({ documents, rootDocumentIds, isLoading: false });
                 } catch (error: any) {
                     console.error('Failed to fetch documents:', error);
@@ -300,7 +296,6 @@ export const useDocumentStore = create<DocumentState>()(
             },
 
             updateDocument: async (id, partial) => {
-                console.log("Updating document:", id, partial);
                 // Optimistic
                 set((state) => {
                     const doc = state.documents[id];
@@ -477,7 +472,6 @@ export const useDocumentStore = create<DocumentState>()(
             },
 
             duplicateDocument: async (id: string) => {
-                console.log("Duplicating document:", id);
                 const { data: { user } } = await auth.getUser();
                 if (!user) {
                     console.error("No user found during duplicate");
@@ -513,9 +507,7 @@ export const useDocumentStore = create<DocumentState>()(
                             is_published: false
                         };
 
-                        console.log("Creating copy with payload:", createPayload);
                         const newDoc = await documentService.createDocument(createPayload);
-                        console.log("Created copy doc:", newDoc);
 
                         // ... copy blocks ...
                         // Fetch blocks for original document?
