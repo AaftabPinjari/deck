@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useDocumentStore, BlockType } from '../../store/useDocumentStore';
 import { SortableBlock } from './SortableBlock';
 import { SlashMenu } from './SlashMenu';
+import { MentionMenu } from './MentionMenu';
 import { FloatingToolbar } from './FloatingToolbar';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -27,15 +28,18 @@ import { cn } from '../../lib/utils';
 import { isLikelyMarkdown, parseMarkdownToBlocks, blocksToMarkdown, downloadMarkdown } from '../../utils/markdownUtils';
 export function Editor() {
     const { documentId } = useParams();
+    const navigate = useNavigate();
     const currentDoc = useDocumentStore(useCallback((state) => documentId ? state.documents[documentId] : null, [documentId]));
-    const { updateDocument, moveBlock, updateBlock: updateBlockStore, addBlock: addBlockStore, deleteBlock: deleteBlockStore, duplicateBlock: duplicateBlockStore, isLoading } = useDocumentStore();
+    const { updateDocument, moveBlock, updateBlock: updateBlockStore, addBlock: addBlockStore, deleteBlock: deleteBlockStore, duplicateBlock: duplicateBlockStore, isLoading, documents } = useDocumentStore();
     const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
     const [focusPosition, setFocusPosition] = useState<'start' | 'end'>('start');
     const [slashMenu, setSlashMenu] = useState<{ isOpen: boolean; anchorRect: DOMRect; blockId: string } | null>(null);
+    const [mentionMenu, setMentionMenu] = useState<{ isOpen: boolean; anchorRect: DOMRect; blockId: string; query: string } | null>(null);
 
     // Use refs to access latest state in callbacks without triggering re-creation
     const currentDocRef = useRef(currentDoc);
     const slashMenuRef = useRef(slashMenu);
+    const mentionMenuRef = useRef(mentionMenu);
 
     useEffect(() => {
         currentDocRef.current = currentDoc;
@@ -44,6 +48,31 @@ export function Editor() {
     useEffect(() => {
         slashMenuRef.current = slashMenu;
     }, [slashMenu]);
+
+    useEffect(() => {
+        mentionMenuRef.current = mentionMenu;
+    }, [mentionMenu]);
+
+    // Handle 404 - Document not found
+    if (documentId && !isLoading && !currentDoc) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+                <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-2xl flex items-center justify-center mb-4 text-3xl">
+                    🤔
+                </div>
+                <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-200 mb-2">Page Not Found</h2>
+                <p className="text-neutral-500 max-w-sm mb-6">
+                    This page doesn't exist or has been deleted.
+                </p>
+                <button
+                    onClick={() => navigate('/')}
+                    className="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                    Go to Home
+                </button>
+            </div>
+        );
+    }
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -83,6 +112,19 @@ export function Editor() {
                 isOpen: true,
                 anchorRect: rect,
                 blockId
+            });
+        }
+    }, []);
+
+    const handleMentionMenu = useCallback((blockId: string, query: string = '') => {
+        const el = document.querySelector(`[data-block-id="${blockId}"]`) as HTMLElement;
+        if (el) {
+            const rect = el.getBoundingClientRect();
+            setMentionMenu({
+                isOpen: true,
+                anchorRect: rect,
+                blockId,
+                query
             });
         }
     }, []);
@@ -143,14 +185,54 @@ export function Editor() {
         updateBlockStore(documentId, blockId, { content });
 
         // Handle Slash Menu Trigger
+        // Handle Mention Trigger
+        const lastOpen = content.lastIndexOf('[[');
+        const lastClose = content.lastIndexOf(']]');
+
         if (content.startsWith('/')) {
             if (!slashMenuRef.current) {
                 handleSlashMenu(blockId);
             }
-        } else if (slashMenuRef.current && slashMenuRef.current.blockId === blockId) {
-            setSlashMenu(null);
+        } else if (lastOpen !== -1 && lastOpen > lastClose) {
+            const query = content.substring(lastOpen + 2);
+            if (!mentionMenuRef.current) {
+                handleMentionMenu(blockId, query);
+            } else {
+                setMentionMenu(prev => prev ? { ...prev, query } : null);
+            }
+        } else {
+            if (slashMenuRef.current && slashMenuRef.current.blockId === blockId) {
+                setSlashMenu(null);
+            }
+            if (mentionMenuRef.current && mentionMenuRef.current.blockId === blockId) {
+                setMentionMenu(null);
+            }
         }
-    }, [documentId, updateBlockStore, handleSlashMenu]);
+    }, [documentId, updateBlockStore, handleSlashMenu, handleMentionMenu]);
+
+    const handleMentionSelect = useCallback((docId: string, title: string) => {
+        if (!mentionMenu) return;
+
+        const { blockId } = mentionMenu;
+        const el = document.querySelector(`[data-block-id="${blockId}"]`) as HTMLElement;
+        if (!el) return;
+
+        // Replace [[query]] with a link
+        const content = el.innerHTML;
+        const lastMentionIndex = content.lastIndexOf('[[');
+        if (lastMentionIndex !== -1) {
+            const newContent = content.substring(0, lastMentionIndex) +
+                `<a href="/${docId}" class="text-blue-600 dark:text-blue-400 font-medium underline decoration-blue-500/30 underline-offset-4 hover:bg-blue-50 dark:hover:bg-blue-900/30 px-1 rounded transition-colors" data-mention="true">@${title}</a>&nbsp;`;
+
+            updateBlockStore(documentId!, blockId, { content: newContent });
+
+            // Set focus back and move cursor
+            setFocusedBlockId(blockId);
+            setFocusPosition('end');
+        }
+
+        setMentionMenu(null);
+    }, [mentionMenu, documentId, updateBlockStore]);
 
     const updateBlockType = useCallback((blockId: string, type: string) => {
         if (!documentId) return;
@@ -513,8 +595,26 @@ export function Editor() {
                         <div
                             className="flex flex-col pb-32 min-h-[50vh] cursor-text"
                             onClick={(e) => {
+                                // Handle mention clicks
+                                const target = e.target as HTMLElement;
+                                if (target.tagName === 'A' && target.getAttribute('data-mention') === 'true') {
+                                    e.preventDefault();
+                                    const href = target.getAttribute('href');
+                                    // Extract document ID from href (e.g., "/abc" -> "abc")
+                                    const targetId = href?.substring(1);
+
+                                    // Verify document exists before navigating
+                                    if (targetId && documents[targetId]) {
+                                        navigate(href!);
+                                    } else {
+                                        // Optional: Show toast or feedback that page doesn't exist
+                                        console.warn(`Page not found: ${targetId}`);
+                                    }
+                                    return;
+                                }
+
                                 // Only handle clicks directly on the container (empty space)
-                                if (e.target !== e.currentTarget) return;
+                                if (target !== e.currentTarget) return;
 
                                 const content = currentDocRef.current?.content;
                                 if (!content || content.length === 0) return;
@@ -591,6 +691,14 @@ export function Editor() {
                         query={
                             currentDoc.content.find(b => b.id === slashMenu.blockId)?.content.slice(1) || ''
                         }
+                    />
+                )}
+                {mentionMenu?.isOpen && (
+                    <MentionMenu
+                        anchorRect={mentionMenu.anchorRect}
+                        onSelect={handleMentionSelect}
+                        onClose={() => setMentionMenu(null)}
+                        query={mentionMenu.query}
                     />
                 )}
                 <FloatingToolbar />
