@@ -22,8 +22,9 @@ import {
 import { EditorSkeleton } from '../Skeletons/EditorSkeleton';
 import { IconPicker } from '../ui/IconPicker';
 import { CoverImagePicker } from '../ui/CoverImagePicker';
-import { ImageIcon, X } from 'lucide-react';
+import { ImageIcon, X, Download } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { isLikelyMarkdown, parseMarkdownToBlocks, blocksToMarkdown, downloadMarkdown } from '../../utils/markdownUtils';
 export function Editor() {
     const { documentId } = useParams();
     const currentDoc = useDocumentStore(useCallback((state) => documentId ? state.documents[documentId] : null, [documentId]));
@@ -101,6 +102,40 @@ export function Editor() {
         window.addEventListener('keydown', handleGlobalKeyDown);
         return () => window.removeEventListener('keydown', handleGlobalKeyDown);
     }, []);
+
+    // Global Markdown paste handler
+    useEffect(() => {
+        const handlePaste = (e: ClipboardEvent) => {
+            if (!documentId || !currentDocRef.current) return;
+
+            const text = e.clipboardData?.getData('text/plain');
+            if (!text) return;
+
+            // Fast multi-line check using indexOf (faster than split)
+            if (text.indexOf('\n') === -1) return;
+            if (!isLikelyMarkdown(text)) return;
+
+            e.preventDefault();
+            const newBlocks = parseMarkdownToBlocks(text);
+            const startIndex = currentDocRef.current!.content.length;
+
+            // Use for loop for better performance
+            for (let i = 0; i < newBlocks.length; i++) {
+                addBlockStore(documentId, newBlocks[i], startIndex + i);
+            }
+        };
+
+        document.addEventListener('paste', handlePaste);
+        return () => document.removeEventListener('paste', handlePaste);
+    }, [documentId, addBlockStore]);
+
+    // Export as Markdown handler
+    const handleExportMarkdown = useCallback(() => {
+        if (!currentDoc) return;
+        const markdown = blocksToMarkdown(currentDoc.content);
+        const fullContent = `# ${currentDoc.title}\n\n${markdown}`;
+        downloadMarkdown(fullContent, currentDoc.title || 'Untitled');
+    }, [currentDoc]);
 
     const updateBlockContent = useCallback((blockId: string, content: string) => {
         if (!documentId) return;
@@ -411,6 +446,14 @@ export function Editor() {
                                 </button>
                             </CoverImagePicker>
                         )}
+                        <button
+                            onClick={handleExportMarkdown}
+                            className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors"
+                            title="Export as Markdown"
+                        >
+                            <Download className="h-3.5 w-3.5" />
+                            Export
+                        </button>
                     </div>
 
                     {/* Icon/Emoji */}
