@@ -377,75 +377,75 @@ export function Editor() {
                 "mx-auto px-12 pb-32",
                 currentDoc.isFullWidth ? "max-w-full px-24" : "max-w-3xl"
             )}>
-                {/* Icon/Emoji - overlaps cover when present */}
-                <div className={cn(
-                    "relative group/icon",
-                    hasCover ? "-mt-10" : "mt-12"
-                )}>
-                    {hasIcon ? (
-                        <div className="relative inline-block">
+                {/* Header Controls & Icon */}
+                <div className="group/header relative mb-8">
+                    {/* Controls - Always visible on hover above title/icon */}
+                    <div className={cn(
+                        "flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity mb-2 text-xs text-neutral-500 select-none",
+                        !hasIcon && !hasCover && "opacity-100" // Show if nothing is set
+                    )}>
+                        {!hasIcon && (
+                            <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>
+                                <button className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
+                                    <span className="text-sm">😀</span>
+                                    Add icon
+                                </button>
+                            </IconPicker>
+                        )}
+                        {!hasCover && (
+                            <CoverImagePicker onChange={(url) => updateDocument(documentId, { coverImage: url })}>
+                                <button className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
+                                    <ImageIcon className="h-3.5 w-3.5" />
+                                    Add cover
+                                </button>
+                            </CoverImagePicker>
+                        )}
+                    </div>
+
+                    {/* Icon/Emoji */}
+                    {hasIcon && (
+                        <div className={cn(
+                            "relative group/icon inline-block",
+                            hasCover ? "-mt-16 mb-4" : "mb-4" // Negative margin to overlap cover
+                        )}>
                             <span
                                 className={cn(
-                                    "text-7xl cursor-pointer select-none block",
+                                    "text-7xl cursor-pointer select-none block hover:opacity-90 transition-opacity",
                                     hasCover && "drop-shadow-lg"
                                 )}
-                                onClick={() => {
-                                    // Open icon picker - handled by wrapper
-                                }}
                             >
                                 <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>
-                                    <span className="hover:opacity-80 transition-opacity">{currentDoc.icon}</span>
+                                    <span>{currentDoc.icon}</span>
                                 </IconPicker>
                             </span>
                             {/* Remove icon button */}
                             <button
                                 onClick={() => updateDocument(documentId, { icon: undefined })}
-                                className="absolute -top-1 -right-1 opacity-0 group-hover/icon:opacity-100 transition-opacity bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded-full p-1"
+                                className="absolute -top-2 -right-2 opacity-0 group-hover/icon:opacity-100 transition-opacity bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded-full p-1 shadow-sm"
                             >
                                 <X className="h-3 w-3 text-neutral-600 dark:text-neutral-300" />
                             </button>
                         </div>
-                    ) : (
-                        /* Show add icon/cover buttons when hovering and nothing is set */
-                        <div className="h-10 opacity-0 group-hover/icon:opacity-100 transition-opacity flex items-center gap-2">
-                            <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>
-                                <button className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
-                                    <span className="text-lg">😀</span>
-                                    Add icon
-                                </button>
-                            </IconPicker>
-                            {!hasCover && (
-                                <CoverImagePicker onChange={(url) => updateDocument(documentId, { coverImage: url })}>
-                                    <button className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
-                                        <ImageIcon className="h-4 w-4" />
-                                        Add cover
-                                    </button>
-                                </CoverImagePicker>
-                            )}
-                        </div>
                     )}
-                </div>
 
-                {/* Title */}
-                <input
-                    className={cn(
-                        "w-full text-4xl font-bold outline-none bg-transparent placeholder:text-neutral-300 text-neutral-800 dark:text-neutral-100 placeholder-opacity-50",
-                        hasIcon ? "mt-2 mb-4" : "mt-4 mb-8"
-                    )}
-                    value={currentDoc.title}
-                    onChange={(e) => updateDocument(documentId, { title: e.target.value })}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (currentDoc.content.length > 0) {
-                                const firstBlockId = currentDoc.content[0].id;
-                                const el = document.querySelector(`[data-block-id="${firstBlockId}"]`) as HTMLElement;
-                                el?.focus();
+                    {/* Title */}
+                    <input
+                        className="w-full text-4xl font-bold outline-none bg-transparent placeholder:text-neutral-300 text-neutral-800 dark:text-neutral-100 placeholder-opacity-50"
+                        value={currentDoc.title}
+                        onChange={(e) => updateDocument(documentId, { title: e.target.value })}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (currentDoc.content.length > 0) {
+                                    const firstBlockId = currentDoc.content[0].id;
+                                    const el = document.querySelector(`[data-block-id="${firstBlockId}"]`) as HTMLElement;
+                                    el?.focus();
+                                }
                             }
-                        }
-                    }}
-                    placeholder="Untitled"
-                />
+                        }}
+                        placeholder="Untitled"
+                    />
+                </div>
 
                 <DndContext
                     sensors={sensors}

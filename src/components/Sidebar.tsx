@@ -142,33 +142,47 @@ const DocumentItem = ({ document, level = 0, onDeleteLabel, isOverlay, dropState
                     <ChevronRight className={cn("h-3.5 w-3.5 text-neutral-400 transition-transform", isExpanded && "rotate-90")} />
                 </div>
 
-                <NavLink
-                    to={`/${document.id}`}
-                    onClick={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className={({ isActive }) =>
-                        cn(
-                            "flex items-center gap-2 flex-1 min-w-0 rounded",
-                            isActive && "text-neutral-900 dark:text-neutral-100 font-medium"
-                        )
-                    }
-                >
-                    <div className="flex items-center justify-center h-5 w-5 shrink-0 text-base">
-                        {document.icon || <FileText className="h-4 w-4 text-neutral-400" />}
-                    </div>
-
-                    {isRenaming ? (
+                {isRenaming ? (
+                    <div
+                        className="flex items-center gap-2 flex-1 min-w-0"
+                        onClick={(e) => e.preventDefault()}
+                    >
+                        <div className="flex items-center justify-center h-5 w-5 shrink-0 text-base">
+                            {document.icon || <FileText className="h-4 w-4 text-neutral-400" />}
+                        </div>
                         <input
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             onBlur={handleRename}
-                            onKeyDown={handleKeyDown}
+                            onKeyDown={(e) => {
+                                e.stopPropagation(); // Prevent dnd-kit interference
+                                handleKeyDown(e);
+                            }}
                             autoFocus
-                            onClick={(e) => e.preventDefault()}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }}
+                            onPointerDown={(e) => e.stopPropagation()} // Prevent dnd-kit drag start
                             onMouseDown={(e) => e.stopPropagation()}
                             className="flex-1 h-6 px-1 bg-white dark:bg-neutral-900 border border-blue-500 rounded text-sm focus:outline-none"
                         />
-                    ) : (
+                    </div>
+                ) : (
+                    <NavLink
+                        to={`/${document.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className={({ isActive }) =>
+                            cn(
+                                "flex items-center gap-2 flex-1 min-w-0 rounded",
+                                isActive && "text-neutral-900 dark:text-neutral-100 font-medium"
+                            )
+                        }
+                    >
+                        <div className="flex items-center justify-center h-5 w-5 shrink-0 text-base">
+                            {document.icon || <FileText className="h-4 w-4 text-neutral-400" />}
+                        </div>
                         <span
                             className="truncate flex-1"
                             onDoubleClick={(e) => {
@@ -178,8 +192,8 @@ const DocumentItem = ({ document, level = 0, onDeleteLabel, isOverlay, dropState
                         >
                             {document.title || 'Untitled'}
                         </span>
-                    )}
-                </NavLink>
+                    </NavLink>
+                )}
 
                 {!isRenaming && (
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
