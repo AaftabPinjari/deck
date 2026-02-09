@@ -3,6 +3,7 @@ import { temporal } from 'zundo';
 import { v4 as uuidv4 } from 'uuid';
 import { documentService } from '../services/documentService';
 import { auth } from '../services/auth';
+import { getTemplateById } from '../data/templates';
 
 export type BlockType = 'text' | 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'todo' | 'quote' | 'divider' | 'image' | 'code' | 'callout' | 'video' | 'toggle' | 'table';
 
@@ -49,6 +50,7 @@ interface DocumentState {
     permanentlyDeleteDocument: (id: string) => Promise<void>;
     moveDocument: (id: string, newParentId: string | null, newIndex: number) => Promise<void>;
     duplicateDocument: (id: string) => Promise<string | null>;
+    createDocumentFromTemplate: (templateId: string, parentId?: string | null) => Promise<string | null>;
 
     // Block actions
     addBlock: (docId: string, block: Block, index: number) => Promise<void>;
@@ -212,6 +214,89 @@ export const useDocumentStore = create<DocumentState>()(
                 }
 
                 return id;
+            },
+
+            createDocumentFromTemplate: async (templateId, parentId = null) => {
+                const template = getTemplateById(templateId);
+                if (!template) {
+                    console.error("Template not found:", templateId);
+                    return null;
+                }
+
+                const { data: { user } } = await auth.getUser();
+                if (!user) throw new Error("User not authenticated");
+
+                // Generate IDs
+                const docId = uuidv4();
+                const blocks: Block[] = template.blocks.map((b) => ({
+                    id: uuidv4(),
+                    type: b.type,
+                    content: b.content,
+                    props: b.props || {}
+                }));
+
+                // Derive title from template name
+                const title = template.name === 'Empty Page' ? 'Untitled' : template.name;
+
+                const newDoc: Document = {
+                    id: docId,
+                    title,
+                    content: blocks,
+                    children: [],
+                    parentId,
+                    createdAt: Date.now(),
+                    isExpanded: true,
+                };
+
+                // Optimistic Update
+                set((state) => {
+                    const documents = { ...state.documents, [docId]: newDoc };
+                    const rootDocumentIds = [...state.rootDocumentIds];
+
+                    if (parentId) {
+                        const parent = documents[parentId];
+                        if (parent) {
+                            documents[parentId] = {
+                                ...parent,
+                                children: [...parent.children, docId],
+                                isExpanded: true,
+                            };
+                        }
+                    } else {
+                        rootDocumentIds.push(docId);
+                    }
+                    return { documents, rootDocumentIds };
+                });
+
+                // Async Sync (non-blocking - don't await, let it happen in background)
+                (async () => {
+                    try {
+                        await documentService.createDocument({
+                            id: newDoc.id,
+                            title: newDoc.title,
+                            parent_id: newDoc.parentId,
+                            user_id: user.id,
+                            is_expanded: newDoc.isExpanded,
+                            position: 0
+                        });
+
+                        // Create all blocks in parallel
+                        await Promise.all(blocks.map((block, i) =>
+                            documentService.createBlock({
+                                id: block.id,
+                                document_id: newDoc.id,
+                                type: block.type,
+                                content: block.content,
+                                position: i,
+                                props: block.props || {}
+                            })
+                        ));
+                    } catch (error) {
+                        console.error("Failed to sync create document from template", error);
+                    }
+                })();
+
+                return docId;
             },
 
             updateDocument: async (id, partial) => {

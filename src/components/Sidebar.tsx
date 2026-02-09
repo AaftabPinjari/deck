@@ -17,6 +17,8 @@ import { Modal } from './ui/Modal';
 import { SettingsModal } from './Settings/SettingsModal';
 import { SidebarSkeleton } from './Skeletons/SidebarSkeleton';
 import { TrashBox } from './TrashBox';
+import { TemplatesModal } from './Templates/TemplatesModal';
+import { Layout } from 'lucide-react';
 
 // DnD Imports
 import {
@@ -301,6 +303,7 @@ export function Sidebar() {
     const { toggleSettings } = useSettingsStore();
     const [docToDelete, setDocToDelete] = useState<Document | null>(null);
     const [isTrashOpen, setIsTrashOpen] = useState(false);
+    const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     // DnD State
@@ -532,8 +535,9 @@ export function Sidebar() {
                             </DndContext>
                         </div>
 
-                        <div className="p-4 border-t border-neutral-200 dark:border-neutral-800">
-                            <button onClick={handleAddPage} className="flex items-center gap-2 w-full p-2 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors"><Plus className="h-4 w-4" />New Page</button>
+                        <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 flex gap-2">
+                            <button onClick={handleAddPage} className="flex items-center gap-2 flex-1 p-2 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors"><Plus className="h-4 w-4" />New Page</button>
+                            <button onClick={() => setIsTemplatesOpen(true)} className="flex items-center gap-2 p-2 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors" title="Templates"><Layout className="h-4 w-4" /></button>
                         </div>
                     </>
                 )}
@@ -541,6 +545,7 @@ export function Sidebar() {
 
             <SettingsModal />
             <TrashBox isOpen={isTrashOpen} onClose={() => setIsTrashOpen(false)} />
+            <TemplatesModal isOpen={isTemplatesOpen} onClose={() => setIsTemplatesOpen(false)} />
             <Modal isOpen={!!docToDelete} onClose={() => setDocToDelete(null)} title="Delete Page?">
                 <div className="flex flex-col gap-4">
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">Are you sure you want to delete <span className="font-semibold">{docToDelete?.title || 'Untitled'}</span>?</p>
