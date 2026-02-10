@@ -7,6 +7,7 @@ import { ColumnBlock } from './ColumnBlock';
 import { BlockMenu } from './BlockMenu';
 import { ResizableImage } from './ResizableImage';
 import { BookmarkBlock } from './BookmarkBlock';
+import { KanbanBlock } from './KanbanBlock';
 
 interface BlockProps {
     block: BlockType;
@@ -376,6 +377,8 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                 <ColumnBlock block={block} documentId={documentId} onUpdate={onUpdate!} />
             ) : block.type === 'bookmark' ? (
                 <BookmarkBlock block={block} onUpdate={onUpdate!} onKeyDown={onKeyDown} />
+            ) : block.type === 'kanban' ? (
+                <KanbanBlock block={block} documentId={documentId} onUpdate={onUpdate!} />
             ) : (
                 <div
                     ref={contentRef}

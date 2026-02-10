@@ -6,7 +6,7 @@ import { auth } from '../services/auth';
 import { getTemplateById } from '../data/templates';
 import { getRandomCover, getRandomIcon } from '../lib/defaults';
 
-export type BlockType = 'text' | 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'todo' | 'quote' | 'divider' | 'image' | 'code' | 'callout' | 'video' | 'toggle' | 'table' | 'column_container' | 'bookmark';
+export type BlockType = 'text' | 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'todo' | 'quote' | 'divider' | 'image' | 'code' | 'callout' | 'video' | 'toggle' | 'table' | 'column_container' | 'bookmark' | 'kanban';
 
 export interface Block {
     id: string;
