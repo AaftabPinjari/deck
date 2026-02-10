@@ -141,7 +141,7 @@ export function BlockMenu({ isOpen, onClose, anchorElement, onTurnInto, onDelete
         <div ref={menuRef} className="fixed z-50" style={{ top: position.top, left: position.left }}>
             <div className="flex">
                 {/* Main Content Container - Dynamic Content based on Active View */}
-                <div className="w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm animate-in fade-in zoom-in-95 duration-150 flex flex-col">
+                <div className="w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm text-neutral-900 dark:text-neutral-100 animate-in fade-in zoom-in-95 duration-150 flex flex-col">
 
                     {/* VIEW: MAIN */}
                     {activeView === 'main' && (

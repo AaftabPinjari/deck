@@ -25,7 +25,7 @@ export const useSettingsStore = create<SettingsState>()(
             setIsMobileSidebarOpen: (isOpen) => set({ isMobileSidebarOpen: isOpen }),
         }),
         {
-            name: 'notion-clone-settings',
+            name: 'deck-settings',
         }
     )
 );

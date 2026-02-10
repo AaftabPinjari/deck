@@ -134,9 +134,9 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
     return (
         <div
             id={`block-${block.id}`}
-            className={cn("group flex items-start gap-2 py-1 relative rounded", className)}
+            className={cn("group flex items-start gap-1 md:gap-2 py-1 relative rounded", className)}
             style={{
-                paddingLeft: `calc(${level * 1.5}rem + 1.5rem)`, // Initial indentation for all
+                paddingLeft: `calc(${level * 1.5}rem + 1.25rem)`, // Initial indentation for all
                 color: textColor || undefined,
                 backgroundColor: bgColor || undefined,
             }}
@@ -212,7 +212,7 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
             )}
 
             {/* Prefix rendering based on type */}
-            <div className="select-none flex-shrink-0 w-6 flex justify-end" contentEditable={false}>
+            <div className="select-none flex-shrink-0 w-5 md:w-6 flex justify-end" contentEditable={false}>
                 {block.type === 'bullet' && (
                     <span className="text-xl leading-snug">•</span>
                 )}

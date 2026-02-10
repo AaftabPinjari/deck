@@ -113,7 +113,7 @@ function App() {
                   <div className="w-24 h-24 bg-neutral-100 dark:bg-neutral-800 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
                     <div className="text-4xl">👋</div>
                   </div>
-                  <h1 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">Welcome to Notion Clone</h1>
+                  <h1 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">Welcome to Deck</h1>
                   <p className="text-neutral-500 max-w-md mb-8">
                     The all-in-one workspace for your notes, tasks, and more.
                     Get started by creating a new page in the sidebar.

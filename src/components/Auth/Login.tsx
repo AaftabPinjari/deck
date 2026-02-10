@@ -28,7 +28,7 @@ export function Login() {
             <div className="w-full max-w-[320px] flex flex-col items-center">
                 <div className="mb-8 flex flex-col items-center gap-4">
                     <div className="w-12 h-12 bg-neutral-100 rounded-xl flex items-center justify-center text-2xl shadow-sm">
-                        N
+                        D
                     </div>
                     <h1 className="text-2xl font-bold text-neutral-800">Log in</h1>
                 </div>

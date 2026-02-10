@@ -85,6 +85,8 @@ export interface Database {
                     updated_at?: string
                     user_id?: string | null
                     is_full_width?: boolean
+                    is_small_text?: boolean
+                    is_locked?: boolean
                     font_style?: string
                 }
                 Update: {
@@ -102,6 +104,8 @@ export interface Database {
                     updated_at?: string
                     user_id?: string | null
                     is_full_width?: boolean
+                    is_small_text?: boolean
+                    is_locked?: boolean
                     font_style?: string
                 }
                 Relationships: [

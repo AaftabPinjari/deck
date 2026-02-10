@@ -76,7 +76,10 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                 currentDoc.isFullWidth ? "max-w-full px-6 md:px-24" : "max-w-3xl"
             )}>
                 {/* Header Controls & Icon */}
-                <div className="group/header relative mb-8 pt-8">
+                <div className={cn(
+                    "group/header relative mb-8",
+                    !hasCover && "pt-8" // Only add top padding if NO cover
+                )}>
                     {/* Controls */}
                     <div className={cn(
                         "flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity mb-2 text-xs text-neutral-500 select-none relative z-10",
@@ -103,13 +106,13 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                     {/* Icon/Emoji */}
                     {hasIcon && (
                         <div className={cn(
-                            "relative group/icon inline-block",
-                            hasCover ? "-mt-16 md:-mt-24 mb-4" : "mb-4" // Adjusted margin for visual balance
+                            "relative group/icon inline-block z-10",
+                            hasCover ? "-mt-20 md:-mt-32 mb-4" : "mb-4" // Stronger negative margin
                         )}>
                             <span
                                 className={cn(
                                     "text-5xl md:text-7xl cursor-pointer select-none block hover:opacity-90 transition-opacity",
-                                    hasCover && "drop-shadow-lg"
+                                    hasCover && "drop-shadow-md" // Add shadow to help visual pop against cover
                                 )}
                             >
                                 <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>

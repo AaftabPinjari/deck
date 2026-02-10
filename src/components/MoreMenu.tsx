@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { MoreHorizontal, Copy, Trash, Download } from 'lucide-react';
 import { useDocumentStore } from '../store/useDocumentStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { Modal } from './ui/Modal';
@@ -12,20 +13,28 @@ interface MoreMenuProps {
     documentId: string;
 }
 
-export function MoreMenu({ documentId }: MoreMenuProps) {
+// Font Styles - defined outside to prevent recreation
+const fontStyles = [
+    { id: 'sans', label: 'Default', fontClass: 'font-sans', description: 'Sans-serif' },
+    { id: 'serif', label: 'Serif', fontClass: 'font-serif', description: 'Serif' },
+    { id: 'mono', label: 'Mono', fontClass: 'font-mono', description: 'Monospace' },
+] as const;
+
+export const MoreMenu = memo(function MoreMenu({ documentId }: MoreMenuProps) {
     const navigate = useNavigate();
-    const { documents, updateDocument, archiveDocument, duplicateDocument } = useDocumentStore();
-    const currentDoc = documents[documentId];
+
+    // Optimized selectors to prevent unnecessary re-renders
+    const currentDoc = useDocumentStore(useCallback(state => state.documents[documentId], [documentId]));
+    const updateDocument = useDocumentStore(state => state.updateDocument);
+    const archiveDocument = useDocumentStore(state => state.archiveDocument);
+    const duplicateDocument = useDocumentStore(state => state.duplicateDocument);
+
+    const theme = useSettingsStore(state => state.theme);
+    const setTheme = useSettingsStore(state => state.setTheme);
+
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const [pageToDelete, setPageToDelete] = useState<string | null>(null);
-
-    // Font Styles
-    const fontStyles = [
-        { id: 'sans', label: 'Default', fontClass: 'font-sans', description: 'Sans-serif' },
-        { id: 'serif', label: 'Serif', fontClass: 'font-serif', description: 'Serif' },
-        { id: 'mono', label: 'Mono', fontClass: 'font-mono', description: 'Monospace' },
-    ];
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -34,33 +43,53 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
             }
         };
 
-        window.addEventListener('mousedown', handleClickOutside);
+        if (isOpen) {
+            window.addEventListener('mousedown', handleClickOutside);
+        }
         return () => window.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [isOpen]);
 
-    if (!currentDoc) return null;
-
-    const handleDuplicate = async () => {
+    const handleDuplicate = useCallback(async () => {
         setIsOpen(false);
         const newId = await duplicateDocument(documentId);
         if (newId) {
             const newDoc = useDocumentStore.getState().documents[newId];
             navigate(toPageSlug(newDoc?.title || 'Untitled', newId));
         }
-    };
+    }, [documentId, duplicateDocument, navigate]);
 
-    const handleDelete = async () => {
+    const handleDelete = useCallback(() => {
         setIsOpen(false);
         setPageToDelete(documentId);
-    };
+    }, [documentId]);
 
-    const confirmDelete = async () => {
+    const confirmDelete = useCallback(async () => {
         if (pageToDelete) {
             await archiveDocument(pageToDelete);
             navigate('/');
             setPageToDelete(null);
         }
-    };
+    }, [pageToDelete, archiveDocument, navigate]);
+
+    const handleCopyMarkdown = useCallback(async () => {
+        if (!currentDoc) return;
+        const markdown = blocksToMarkdown(currentDoc.content);
+        await navigator.clipboard.writeText(markdown);
+        toast.success("Copied to clipboard");
+        setIsOpen(false);
+    }, [currentDoc]);
+
+    const handleExportMarkdown = useCallback(() => {
+        if (!currentDoc) return;
+        const markdown = blocksToMarkdown(currentDoc.content);
+        downloadMarkdown(markdown, currentDoc.title || 'Untitled');
+        setIsOpen(false);
+        toast.success("Exported to Markdown");
+    }, [currentDoc]);
+
+
+
+    if (!currentDoc) return null;
 
     return (
         <div className="relative" ref={menuRef}>
@@ -73,7 +102,7 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
             </button>
 
             {isOpen && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-lg z-50 py-1 animation-in fade-in zoom-in-95 duration-100 overflow-hidden">
+                <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-lg z-50 py-1 text-neutral-900 dark:text-neutral-100 animation-in fade-in zoom-in-95 duration-100 overflow-hidden">
 
                     {/* Style Section */}
                     <div className="px-3 py-2">
@@ -155,6 +184,35 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
                                 />
                             </button>
                         </div>
+
+                        {/* Dark Mode Toggle - Deck style */}
+                        <div className="flex items-center justify-between mt-2">
+                            <span className="text-sm text-neutral-600 dark:text-neutral-400">Dark mode</span>
+                            <button
+                                onClick={() => {
+                                    // Calculate effective theme
+                                    const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                                    const isEffectiveDark = theme === 'dark' || (theme === 'system' && isSystemDark);
+                                    // If currently effectively dark, switch to light. Otherwise dark.
+                                    setTheme(isEffectiveDark ? 'light' : 'dark');
+                                }}
+                                className={cn(
+                                    "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                                    (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches))
+                                        ? "bg-blue-500"
+                                        : "bg-neutral-200 dark:bg-neutral-700"
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                        (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches))
+                                            ? "translate-x-4"
+                                            : "translate-x-0.5"
+                                    )}
+                                />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="my-1 border-t border-neutral-100 dark:border-neutral-800" />
@@ -162,12 +220,7 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
                     {/* Actions */}
                     <div className="py-1">
                         <button
-                            onClick={async () => {
-                                const markdown = blocksToMarkdown(currentDoc.content);
-                                await navigator.clipboard.writeText(markdown);
-                                toast.success("Copied to clipboard");
-                                setIsOpen(false);
-                            }}
+                            onClick={handleCopyMarkdown}
                             className="w-full text-left px-3 py-1.5 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
                         >
                             <Copy className="h-4 w-4" />
@@ -188,12 +241,7 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
                             Delete
                         </button>
                         <button
-                            onClick={() => {
-                                const markdown = blocksToMarkdown(currentDoc.content);
-                                downloadMarkdown(markdown, currentDoc.title || 'Untitled');
-                                setIsOpen(false);
-                                toast.success("Exported to Markdown");
-                            }}
+                            onClick={handleExportMarkdown}
                             className="w-full text-left px-3 py-1.5 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
                         >
                             <Download className="h-4 w-4" />
@@ -209,7 +257,6 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
 
                 </div>
             )}
-
             <Modal isOpen={!!pageToDelete} onClose={() => setPageToDelete(null)} title="Delete Page?">
                 <div className="flex flex-col gap-4">
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">Are you sure you want to delete this page?</p>
@@ -221,4 +268,4 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
             </Modal>
         </div>
     );
-}
+});
