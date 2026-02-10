@@ -5,7 +5,7 @@ import { useDocumentStore } from './store/useDocumentStore';
 import { useSettingsStore } from './store/useSettingsStore';
 import { auth } from './services/auth';
 import { Breadcrumbs } from './components/Breadcrumbs';
-import { SearchCommand } from './components/SearchCommand';
+const SearchCommand = lazy(() => import('./components/SearchCommand').then(m => ({ default: m.SearchCommand })));
 import { Loader2 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 //hiyad99739@icubik.com -- admin email id
@@ -91,7 +91,9 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster position="bottom-center" />
-      <SearchCommand />
+      <Suspense fallback={null}>
+        <SearchCommand />
+      </Suspense>
       <Routes>
         <Route path="/login" element={<Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}><Login /></Suspense>} />
         <Route path="/signup" element={<Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}><Signup /></Suspense>} />

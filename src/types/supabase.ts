@@ -60,13 +60,15 @@ export interface Database {
                     is_favorite: boolean
                     is_archived: boolean
                     is_published: boolean
+                    is_full_width: boolean
+                    is_small_text: boolean
+                    is_locked: boolean
+                    font_style: 'sans' | 'serif' | 'mono'
                     parent_id: string | null
                     position: number | null
                     title: string | null
                     updated_at: string
                     user_id: string | null
-                    is_full_width: boolean
-                    font_style: string
                 }
                 Insert: {
                     cover_image?: string | null

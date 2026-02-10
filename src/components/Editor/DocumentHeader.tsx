@@ -125,12 +125,20 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                         </div>
                     )}
 
+                    {/* Last Edited Time */}
+                    <div className="text-xs text-neutral-400 mb-4 select-none">
+                        Edited {new Date(currentDoc.updatedAt).toLocaleDateString()} {new Date(currentDoc.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+
                     {/* Title */}
                     <input
                         ref={titleInputRef}
-                        className="w-full text-4xl font-bold outline-none bg-transparent placeholder:text-neutral-300 text-neutral-800 dark:text-neutral-100 placeholder-opacity-50 break-words"
+                        className={cn(
+                            "w-full text-4xl font-bold outline-none bg-transparent placeholder:text-neutral-300 text-neutral-800 dark:text-neutral-100 placeholder-opacity-50 break-words",
+                            currentDoc.isLocked && "pointer-events-none"
+                        )}
                         value={currentDoc.title}
-                        onChange={(e) => updateDocument(documentId, { title: e.target.value })}
+                        onChange={(e) => !currentDoc.isLocked && updateDocument(documentId, { title: e.target.value })}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 e.preventDefault();
@@ -142,6 +150,7 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                             }
                         }}
                         placeholder="Untitled"
+                        readOnly={currentDoc.isLocked}
                     />
                 </div>
             </div>

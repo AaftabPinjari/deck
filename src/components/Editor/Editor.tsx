@@ -511,7 +511,8 @@ export function Editor() {
             {/* Content area with proper padding */}
             <div className={cn(
                 "mx-auto px-12 pb-32",
-                isFullWidth ? "max-w-full px-24" : "max-w-3xl"
+                isFullWidth ? "max-w-full px-24" : "max-w-3xl",
+                useDocumentStore.getState().documents[documentId!]?.isSmallText ? "text-sm" : "text-base"
             )}>
 
                 <DndContext
@@ -526,6 +527,9 @@ export function Editor() {
                         <div
                             className="flex flex-col pb-32 min-h-[50vh] cursor-text"
                             onClick={(e) => {
+                                // Prevent adding blocks if locked
+                                if (useDocumentStore.getState().documents[documentId!]?.isLocked) return;
+
                                 // Handle mention clicks
                                 const target = e.target as HTMLElement;
                                 if (target.tagName === 'A' && target.getAttribute('data-mention') === 'true') {
@@ -564,6 +568,7 @@ export function Editor() {
                         >
                             {(() => {
                                 const counts: Record<number, number> = {};
+                                const isLocked = useDocumentStore.getState().documents[documentId!]?.isLocked;
 
                                 return visibleBlocks.map((block, index) => {
                                     let blockIndex: number | undefined = undefined;
@@ -592,21 +597,23 @@ export function Editor() {
                                     const isGrouped = isList && prevBlock && prevBlock.type === block.type;
 
                                     return (
-                                        <SortableBlock
-                                            key={block.id}
-                                            block={block}
-                                            documentId={documentId}
-                                            onChange={updateBlockContent}
-                                            onKeyDown={handleKeyDown}
-                                            onFocus={onFocusBlock}
-                                            onTypeChange={updateBlockType}
-                                            onSlashMenu={handleSlashMenu}
-                                            onUpdate={onUpdateBlock}
-                                            onDelete={deleteBlock}
-                                            onDuplicate={onDuplicateBlock}
-                                            index={blockIndex}
-                                            className={isGrouped ? "mt-0" : "mt-2"}
-                                        />
+                                        <div key={block.id} className={cn("relative group/block", isLocked && "pointer-events-none")}>
+                                            <SortableBlock
+                                                block={block}
+                                                documentId={documentId!}
+                                                onChange={updateBlockContent}
+                                                onKeyDown={handleKeyDown}
+                                                onFocus={onFocusBlock}
+                                                onTypeChange={updateBlockType}
+                                                onSlashMenu={handleSlashMenu}
+                                                onUpdate={onUpdateBlock}
+                                                onDelete={deleteBlock}
+                                                onDuplicate={onDuplicateBlock}
+                                                index={blockIndex}
+                                                className={isGrouped ? "mt-0" : "mt-2"}
+                                                readOnly={isLocked}
+                                            />
+                                        </div>
                                     );
                                 });
                             })()}

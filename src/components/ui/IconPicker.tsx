@@ -1,6 +1,9 @@
-import { useRef, useState, useEffect } from 'react';
-import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
+import { useRef, useState, useEffect, lazy, Suspense } from 'react';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import type { EmojiClickData, Theme } from 'emoji-picker-react';
+
+// Dynamically import the heavy emoji picker (~400KB) only when opened
+const EmojiPicker = lazy(() => import('emoji-picker-react'));
 
 interface IconPickerProps {
     onChange: (icon: string) => void;
@@ -48,16 +51,20 @@ export function IconPicker({ onChange, children }: IconPickerProps) {
                     ref={popoverRef}
                     className="absolute z-50 top-full mt-2 left-0 shadow-xl rounded-xl border border-neutral-200 dark:border-neutral-800"
                 >
-                    <EmojiPicker
-                        theme={currentTheme}
-                        onEmojiClick={onEmojiClick}
-                        width={350}
-                        height={400}
-                    />
+                    <Suspense fallback={
+                        <div className="w-[350px] h-[400px] flex items-center justify-center bg-white dark:bg-neutral-900 rounded-xl">
+                            <div className="animate-spin w-6 h-6 border-2 border-neutral-300 border-t-blue-500 rounded-full" />
+                        </div>
+                    }>
+                        <EmojiPicker
+                            theme={currentTheme}
+                            onEmojiClick={onEmojiClick}
+                            width={350}
+                            height={400}
+                        />
+                    </Suspense>
                 </div>
             )}
         </div>
     );
 }
-
-

@@ -18,9 +18,10 @@ interface SortableBlockProps {
     onDuplicate?: (id: string) => void;
     index?: number;
     className?: string;
+    readOnly?: boolean;
 }
 
-export const SortableBlock = memo(function SortableBlock({ block, documentId, onChange, onKeyDown, onFocus, onTypeChange, onSlashMenu, onUpdate, onDelete, onDuplicate, index, className }: SortableBlockProps) {
+export const SortableBlock = memo(function SortableBlock({ block, documentId, onChange, onKeyDown, onFocus, onTypeChange, onSlashMenu, onUpdate, onDelete, onDuplicate, index, className, readOnly }: SortableBlockProps) {
     const {
         attributes,
         listeners,
@@ -28,18 +29,19 @@ export const SortableBlock = memo(function SortableBlock({ block, documentId, on
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: block.id });
+    } = useSortable({ id: block.id, data: { type: block.type, block } });
 
     const style = {
-        transform: CSS.Translate.toString(transform),
+        transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.3 : 1,
+        zIndex: isDragging ? 1000 : 1,
         position: 'relative' as const,
-        zIndex: isDragging ? 999 : 'auto',
+        touchAction: 'none',
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...attributes}>
+        <div ref={setNodeRef} style={style} className={className}>
             <Block
                 block={block}
                 documentId={documentId}
@@ -51,9 +53,9 @@ export const SortableBlock = memo(function SortableBlock({ block, documentId, on
                 onUpdate={onUpdate}
                 onDelete={onDelete}
                 onDuplicate={onDuplicate}
-                dragHandleProps={listeners}
                 index={index}
-                className={className}
+                dragHandleProps={!readOnly ? { ...attributes, ...listeners } : undefined}
+                readOnly={readOnly}
             />
         </div>
     );

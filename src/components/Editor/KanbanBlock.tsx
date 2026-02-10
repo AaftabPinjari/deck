@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useLayoutEffect } from 'react';
+import { useState, useMemo, useRef, useLayoutEffect, memo } from 'react';
 import {
     DndContext,
     closestCorners,
@@ -29,7 +29,8 @@ import { v4 as uuidv4 } from 'uuid';
 interface KanbanBlockProps {
     block: BlockType;
     documentId: string;
-    onUpdate: (id: string, props: Record<string, any>) => void;
+    onUpdate?: (id: string, props: Record<string, any>) => void;
+    readOnly?: boolean;
 }
 
 interface KanbanCard {
@@ -52,7 +53,7 @@ const DEFAULT_COLUMNS: KanbanColumn[] = [
 
 // --- Card Component ---
 
-function Card({ card, onDelete, onChange }: { card: KanbanCard; onDelete?: () => void; onChange?: (val: string) => void }) {
+function Card({ card, onDelete, onChange, readOnly }: { card: KanbanCard; onDelete?: () => void; onChange?: (val: string) => void; readOnly?: boolean }) {
     const {
         attributes,
         listeners,
@@ -60,7 +61,7 @@ function Card({ card, onDelete, onChange }: { card: KanbanCard; onDelete?: () =>
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: card.id, data: { type: 'Card', card } });
+    } = useSortable({ id: card.id, data: { type: 'Card', card }, disabled: readOnly });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -68,12 +69,6 @@ function Card({ card, onDelete, onChange }: { card: KanbanCard; onDelete?: () =>
         opacity: isDragging ? 0.3 : 1,
     };
 
-    // Local state for smooth typing
-    // We used to have local state here but now we use refs to manage contentEditable directly
-    // to avoid re-rendering issues during typing.
-
-    // Better approach: Uncontrolled with key-based reset OR carefully managed refs.
-    // Let's use a ref to track if we are editing.
     const isEditingRef = useRef(false);
     const contentRef = useRef<HTMLDivElement>(null);
 
@@ -99,15 +94,22 @@ function Card({ card, onDelete, onChange }: { card: KanbanCard; onDelete?: () =>
             style={style}
             {...attributes}
             {...listeners}
-            className="group relative bg-white dark:bg-neutral-800 p-2.5 rounded shadow-sm border border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 mb-2 cursor-grab active:cursor-grabbing transition-all hover:shadow-md"
+            className={cn(
+                "group relative bg-white dark:bg-neutral-800 p-2.5 rounded shadow-sm border border-neutral-200 dark:border-neutral-700 mb-2 transition-all hover:shadow-md",
+                !readOnly && "hover:border-neutral-300 dark:hover:border-neutral-600 cursor-grab active:cursor-grabbing"
+            )}
         >
             <div
                 ref={contentRef}
-                contentEditable
+                contentEditable={!readOnly}
                 suppressContentEditableWarning
-                className="outline-none min-h-[1.5em] text-sm text-neutral-800 dark:text-neutral-200 break-words whitespace-pre-wrap leading-relaxed"
-                onFocus={() => { isEditingRef.current = true; }}
+                className={cn(
+                    "outline-none min-h-[1.5em] text-sm text-neutral-800 dark:text-neutral-200 break-words whitespace-pre-wrap leading-relaxed",
+                    !readOnly && "cursor-text"
+                )}
+                onFocus={() => { if (!readOnly) isEditingRef.current = true; }}
                 onBlur={(e) => {
+                    if (readOnly) return;
                     isEditingRef.current = false;
                     const newContent = e.currentTarget.innerText;
                     if (newContent !== card.content) {
@@ -115,18 +117,18 @@ function Card({ card, onDelete, onChange }: { card: KanbanCard; onDelete?: () =>
                     }
                 }}
                 onKeyDown={(e) => {
+                    if (readOnly) return;
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         e.currentTarget.blur();
                     }
-                    // Stop propagation to prevent dnd-kit from intercepting Space/Enter
                     e.stopPropagation();
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
             >
                 {card.content}
             </div>
-            {onDelete && (
+            {onDelete && !readOnly && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
@@ -150,7 +152,8 @@ function Column({
     deleteColumn,
     createCard,
     deleteCard,
-    updateCard
+    updateCard,
+    readOnly
 }: {
     column: KanbanColumn;
     updateColumn: (id: string, title?: string, color?: string) => void;
@@ -158,6 +161,7 @@ function Column({
     createCard: (colId: string) => void;
     deleteCard: (colId: string, cardId: string) => void;
     updateCard: (colId: string, cardId: string, content: string) => void;
+    readOnly?: boolean;
 }) {
     const {
         attributes,
@@ -166,7 +170,7 @@ function Column({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: column.id, data: { type: 'Column', column } });
+    } = useSortable({ id: column.id, data: { type: 'Column', column }, disabled: readOnly });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -196,24 +200,30 @@ function Column({
                 {...attributes}
                 {...listeners}
                 className={cn(
-                    "p-3 flex items-center justify-between cursor-grab active:cursor-grabbing rounded-t-lg transition-colors border-b border-transparent",
+                    "p-3 flex items-center justify-between rounded-t-lg transition-colors border-b border-transparent",
                     column.color,
-                    "hover:border-black/5 dark:hover:border-white/5"
+                    !readOnly && "cursor-grab active:cursor-grabbing hover:border-black/5 dark:hover:border-white/5"
                 )}
             >
                 <input
-                    className="bg-transparent border-none outline-none font-semibold text-sm text-neutral-700 dark:text-neutral-200 w-full placeholder:text-neutral-400"
+                    className={cn(
+                        "bg-transparent border-none outline-none font-semibold text-sm text-neutral-700 dark:text-neutral-200 w-full placeholder:text-neutral-400",
+                        readOnly && "pointer-events-none"
+                    )}
                     value={column.title}
-                    onChange={(e) => updateColumn(column.id, e.target.value)}
+                    onChange={(e) => !readOnly && updateColumn(column.id, e.target.value)}
                     onPointerDown={(e) => e.stopPropagation()}
                     placeholder="Column Title"
+                    readOnly={readOnly}
                 />
-                <button
-                    onClick={() => deleteColumn(column.id)}
-                    className="p-1 text-neutral-500 hover:text-red-600 rounded opacity-0 group-hover/column:opacity-100 hover:bg-black/5 transition-all"
-                >
-                    <X className="h-3.5 w-3.5" />
-                </button>
+                {!readOnly && (
+                    <button
+                        onClick={() => deleteColumn(column.id)}
+                        className="p-1 text-neutral-500 hover:text-red-600 rounded opacity-0 group-hover/column:opacity-100 hover:bg-black/5 transition-all"
+                    >
+                        <X className="h-3.5 w-3.5" />
+                    </button>
+                )}
             </div>
 
             {/* Cards Area */}
@@ -226,6 +236,7 @@ function Column({
                                 card={card}
                                 onDelete={() => deleteCard(column.id, card.id)}
                                 onChange={(content) => updateCard(column.id, card.id, content)}
+                                readOnly={readOnly}
                             />
                         ))}
                     </div>
@@ -233,20 +244,22 @@ function Column({
             </div>
 
             {/* Footer */}
-            <button
-                onClick={() => createCard(column.id)}
-                className="m-2 p-2 text-left text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800 rounded-md flex items-center gap-1.5 transition-all"
-            >
-                <Plus className="h-3.5 w-3.5" />
-                New
-            </button>
+            {!readOnly && (
+                <button
+                    onClick={() => createCard(column.id)}
+                    className="m-2 p-2 text-left text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800 rounded-md flex items-center gap-1.5 transition-all"
+                >
+                    <Plus className="h-3.5 w-3.5" />
+                    New
+                </button>
+            )}
         </div>
     );
 }
 
 // --- Main Kanban Block ---
 
-export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
+export const KanbanBlock = memo(function KanbanBlock({ block, onUpdate, readOnly }: KanbanBlockProps) {
     const columns: KanbanColumn[] = useMemo(() =>
         block.props?.columns || DEFAULT_COLUMNS,
         [block.props?.columns]);
@@ -267,11 +280,13 @@ export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
     );
 
     const updateColumnsState = (newColumns: KanbanColumn[]) => {
+        if (readOnly || !onUpdate) return;
         onUpdate(block.id, { props: { ...block.props, columns: newColumns } });
     };
 
     // Actions
     const createColumn = () => {
+        if (readOnly) return;
         const newColumn: KanbanColumn = {
             id: uuidv4(),
             title: 'New Group',
@@ -282,6 +297,7 @@ export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
     };
 
     const updateColumn = (id: string, title?: string, color?: string) => {
+        if (readOnly) return;
         const newColumns = columns.map((col) => {
             if (col.id !== id) return col;
             return {
@@ -294,10 +310,12 @@ export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
     };
 
     const deleteColumn = (id: string) => {
+        if (readOnly) return;
         updateColumnsState(columns.filter((col) => col.id !== id));
     };
 
     const createCard = (colId: string) => {
+        if (readOnly) return;
         const newCard: KanbanCard = { id: uuidv4(), content: '' };
         const newColumns = columns.map((col) => {
             if (col.id !== colId) return col;
@@ -307,6 +325,7 @@ export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
     };
 
     const updateCard = (colId: string, cardId: string, content: string) => {
+        if (readOnly) return;
         const newColumns = columns.map((col) => {
             if (col.id !== colId) return col;
             return {
@@ -318,6 +337,7 @@ export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
     };
 
     const deleteCard = (colId: string, cardId: string) => {
+        if (readOnly) return;
         const newColumns = columns.map((col) => {
             if (col.id !== colId) return col;
             return { ...col, cards: col.cards.filter((c) => c.id !== cardId) };
@@ -327,6 +347,7 @@ export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
 
     // Drag Handlers
     const onDragStart = (event: DragStartEvent) => {
+        if (readOnly) return;
         if (event.active.data.current?.type === 'Column') {
             setActiveDragItem(event.active.data.current.column);
         } else if (event.active.data.current?.type === 'Card') {
@@ -335,6 +356,7 @@ export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
     };
 
     const onDragOver = (event: DragOverEvent) => {
+        if (readOnly) return;
         const { active, over } = event;
         if (!over) return;
 
@@ -402,6 +424,10 @@ export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
     };
 
     const onDragEnd = (event: DragEndEvent) => {
+        if (readOnly) {
+            setActiveDragItem(null);
+            return;
+        }
         setActiveDragItem(null);
         const { active, over } = event;
         if (!over) return;
@@ -448,7 +474,7 @@ export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
         >
             <div className="flex flex-col gap-2 my-4 w-full group/kanban">
                 <div className="flex gap-4 overflow-x-auto pb-4 items-start px-1">
-                    <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+                    <SortableContext items={columnIds} strategy={horizontalListSortingStrategy} disabled={readOnly}>
                         {columns.map((col) => (
                             <Column
                                 key={col.id}
@@ -458,17 +484,20 @@ export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
                                 createCard={createCard}
                                 updateCard={updateCard}
                                 deleteCard={deleteCard}
+                                readOnly={readOnly}
                             />
                         ))}
                     </SortableContext>
 
-                    <button
-                        onClick={createColumn}
-                        className="w-72 h-12 flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-neutral-200 dark:border-neutral-800 text-neutral-400 hover:text-neutral-600 hover:border-neutral-300 dark:hover:border-neutral-700 transition-all flex-shrink-0 hover:bg-neutral-50 dark:hover:bg-neutral-900"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Add Group
-                    </button>
+                    {!readOnly && (
+                        <button
+                            onClick={createColumn}
+                            className="w-72 h-12 flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-neutral-200 dark:border-neutral-800 text-neutral-400 hover:text-neutral-600 hover:border-neutral-300 dark:hover:border-neutral-700 transition-all flex-shrink-0 hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Add Group
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -487,4 +516,4 @@ export function KanbanBlock({ block, onUpdate }: KanbanBlockProps) {
             </DragOverlay>
         </DndContext>
     );
-}
+});

@@ -95,8 +95,27 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
                             ))}
                         </div>
 
+                        {/* Small Text Toggle */}
+                        <div className="flex items-center justify-between mt-2">
+                            <span className="text-sm text-neutral-600 dark:text-neutral-400">Small text</span>
+                            <button
+                                onClick={() => updateDocument(documentId, { isSmallText: !currentDoc.isSmallText })}
+                                className={cn(
+                                    "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                                    currentDoc.isSmallText ? "bg-blue-500" : "bg-neutral-200 dark:bg-neutral-700"
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                        currentDoc.isSmallText ? "translate-x-4" : "translate-x-0.5"
+                                    )}
+                                />
+                            </button>
+                        </div>
+
                         {/* Full Width Toggle */}
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between mt-2">
                             <span className="text-sm text-neutral-600 dark:text-neutral-400">Full width</span>
                             <button
                                 onClick={() => updateDocument(documentId, { isFullWidth: !currentDoc.isFullWidth })}
@@ -109,6 +128,25 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
                                     className={cn(
                                         "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
                                         currentDoc.isFullWidth ? "translate-x-4" : "translate-x-0.5"
+                                    )}
+                                />
+                            </button>
+                        </div>
+
+                        {/* Lock Page Toggle */}
+                        <div className="flex items-center justify-between mt-2">
+                            <span className="text-sm text-neutral-600 dark:text-neutral-400">Lock page</span>
+                            <button
+                                onClick={() => updateDocument(documentId, { isLocked: !currentDoc.isLocked })}
+                                className={cn(
+                                    "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                                    currentDoc.isLocked ? "bg-blue-500" : "bg-neutral-200 dark:bg-neutral-700"
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                        currentDoc.isLocked ? "translate-x-4" : "translate-x-0.5"
                                     )}
                                 />
                             </button>

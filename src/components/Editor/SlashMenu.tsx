@@ -47,6 +47,7 @@ const ITEMS = [
     { type: 'column_container', label: '2 Columns', icon: Table, description: 'Split content into 2 columns.', columns: 2 },
     { type: 'column_container', label: '3 Columns', icon: Table, description: 'Split content into 3 columns.', columns: 3 },
     { type: 'bookmark', label: 'Bookmark', icon: ExternalLink, description: 'Save a link with a preview.' },
+    { type: 'table_of_contents', label: 'Table of Contents', icon: List, description: 'Overview of the page.' },
     { type: 'kanban', label: 'Kanban Board', icon: Layout, description: 'Track projects with a board.' },
 ] as const;
 
