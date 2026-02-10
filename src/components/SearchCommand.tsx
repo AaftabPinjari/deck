@@ -3,6 +3,7 @@ import { Command } from 'cmdk';
 import { useDocumentStore } from '../store/useDocumentStore';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Search } from 'lucide-react';
+import { toPageSlug } from '../lib/slugUtils';
 
 export function SearchCommand() {
     const { documents } = useDocumentStore();
@@ -22,7 +23,8 @@ export function SearchCommand() {
     }, []);
 
     const onSelect = (id: string) => {
-        navigate(`/${id}`);
+        const doc = documents[id];
+        navigate(toPageSlug(doc?.title || 'Untitled', id));
         setOpen(false);
     };
 

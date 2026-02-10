@@ -6,6 +6,7 @@ import { cn } from '../lib/utils';
 import { Modal } from './ui/Modal';
 import { blocksToMarkdown, downloadMarkdown } from '../utils/markdownUtils';
 import { toast } from 'sonner';
+import { toPageSlug } from '../lib/slugUtils';
 
 interface MoreMenuProps {
     documentId: string;
@@ -42,7 +43,10 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
     const handleDuplicate = async () => {
         setIsOpen(false);
         const newId = await duplicateDocument(documentId);
-        if (newId) navigate(`/${newId}`);
+        if (newId) {
+            const newDoc = useDocumentStore.getState().documents[newId];
+            navigate(toPageSlug(newDoc?.title || 'Untitled', newId));
+        }
     };
 
     const handleDelete = async () => {

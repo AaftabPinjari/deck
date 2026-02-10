@@ -5,6 +5,7 @@ import { useDocumentStore } from './store/useDocumentStore';
 import { useSettingsStore } from './store/useSettingsStore';
 import { auth } from './services/auth';
 import { Breadcrumbs } from './components/Breadcrumbs';
+import { toPageSlug } from './lib/slugUtils';
 const SearchCommand = lazy(() => import('./components/SearchCommand').then(m => ({ default: m.SearchCommand })));
 import { Loader2 } from 'lucide-react';
 import { supabase } from './lib/supabase';
@@ -57,7 +58,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
-  const { rootDocumentIds, fetchDocuments, reset } = useDocumentStore();
+  const { rootDocumentIds, documents, fetchDocuments, reset } = useDocumentStore();
   const { theme } = useSettingsStore();
 
   useEffect(() => {
@@ -106,7 +107,7 @@ function App() {
         }>
           <Route index element={
             rootDocumentIds.length > 0
-              ? <Navigate to={`/${rootDocumentIds[0]}`} replace />
+              ? <Navigate to={toPageSlug(documents[rootDocumentIds[0]]?.title || 'Untitled', rootDocumentIds[0])} replace />
               : (
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
                   <div className="w-24 h-24 bg-neutral-100 dark:bg-neutral-800 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
@@ -128,7 +129,7 @@ function App() {
                 </div>
               )
           } />
-          <Route path=":documentId" element={
+          <Route path=":slug" element={
             <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}>
               <Breadcrumbs />
               <Editor />

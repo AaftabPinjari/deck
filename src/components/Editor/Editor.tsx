@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useDocumentStore, BlockType } from '../../store/useDocumentStore';
+import { extractIdFromSlug, toPageSlug } from '../../lib/slugUtils';
 import { SortableBlock } from './SortableBlock';
 import { SlashMenu } from './SlashMenu';
 import { MentionMenu } from './MentionMenu';
@@ -25,8 +26,9 @@ import { DocumentHeader } from './DocumentHeader';
 import { cn } from '../../lib/utils';
 import { isLikelyMarkdown, parseMarkdownToBlocks } from '../../utils/markdownUtils';
 export function Editor() {
-    const { documentId } = useParams();
+    const { slug } = useParams();
     const navigate = useNavigate();
+    const documentId = extractIdFromSlug(slug || '');
 
     const content = useDocumentStore(useCallback(state => documentId ? state.documents[documentId]?.content : undefined, [documentId]));
     const isFullWidth = useDocumentStore(useCallback(state => documentId ? state.documents[documentId]?.isFullWidth : undefined, [documentId]));
@@ -68,7 +70,19 @@ export function Editor() {
             // But since we navigate away or reload, it might persist.
             // A simple way is to check if title is 'Untitled'.
         }
-    }, [location.state, isLoading, documentId]); // Changed currentDoc?.id to documentId
+    }, [location.state, isLoading, documentId]);
+
+    // Auto-sync URL slug when title changes
+    const docTitle = useDocumentStore(useCallback(state => documentId ? state.documents[documentId]?.title : undefined, [documentId]));
+    useEffect(() => {
+        if (documentId && docTitle && slug) {
+            const expectedSlug = toPageSlug(docTitle, documentId);
+            const currentPath = `/${slug}`;
+            if (currentPath !== expectedSlug) {
+                navigate(expectedSlug, { replace: true });
+            }
+        }
+    }, [docTitle, documentId, slug, navigate]);
 
     useEffect(() => {
         slashMenuRef.current = slashMenu;
@@ -228,8 +242,10 @@ export function Editor() {
         const content = el.innerHTML;
         const lastMentionIndex = content.lastIndexOf('[[');
         if (lastMentionIndex !== -1) {
+            const targetDoc = documents[docId];
+            const mentionSlug = toPageSlug(targetDoc?.title || title, docId);
             const newContent = content.substring(0, lastMentionIndex) +
-                `<a href="/${docId}" class="text-blue-600 dark:text-blue-400 font-medium underline decoration-blue-500/30 underline-offset-4 hover:bg-blue-50 dark:hover:bg-blue-900/30 px-1 rounded transition-colors" data-mention="true">@${title}</a>&nbsp;`;
+                `<a href="${mentionSlug}" class="text-blue-600 dark:text-blue-400 font-medium underline decoration-blue-500/30 underline-offset-4 hover:bg-blue-50 dark:hover:bg-blue-900/30 px-1 rounded transition-colors" data-mention="true">@${title}</a>&nbsp;`;
 
             updateBlockStore(documentId!, blockId, { content: newContent });
 
@@ -535,12 +551,12 @@ export function Editor() {
                                 if (target.tagName === 'A' && target.getAttribute('data-mention') === 'true') {
                                     e.preventDefault();
                                     const href = target.getAttribute('href');
-                                    // Extract document ID from href (e.g., "/abc" -> "abc")
-                                    const targetId = href?.substring(1);
+                                    // Extract document ID from slug href
+                                    const targetId = href ? extractIdFromSlug(href) : null;
 
                                     // Verify document exists before navigating
                                     if (targetId && documents[targetId]) {
-                                        navigate(href!);
+                                        navigate(toPageSlug(documents[targetId].title, targetId));
                                     } else {
                                         // Optional: Show toast or feedback that page doesn't exist
                                         console.warn(`Page not found: ${targetId}`);
