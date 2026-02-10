@@ -19,6 +19,7 @@ import { SidebarSkeleton } from './Skeletons/SidebarSkeleton';
 import { TrashBox } from './TrashBox';
 import { TemplatesModal } from './Templates/TemplatesModal';
 import { Layout } from 'lucide-react';
+import { toPageSlug } from '../lib/slugUtils';
 
 // DnD Imports
 import {
@@ -74,7 +75,7 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
         e.preventDefault();
         e.stopPropagation();
         const newDocId = await createDocument(document.id);
-        navigate(`/${newDocId}`);
+        navigate(toPageSlug('Untitled', newDocId));
     };
 
     const handleToggle = (e: React.MouseEvent) => {
@@ -172,7 +173,7 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
                     </div>
                 ) : (
                     <NavLink
-                        to={`/${document.id}`}
+                        to={toPageSlug(document.title, document.id)}
                         onClick={(e) => e.stopPropagation()}
                         onMouseDown={(e) => e.stopPropagation()}
                         className={({ isActive }) =>
@@ -327,7 +328,7 @@ export function Sidebar() {
 
     const handleAddPage = useCallback(async () => {
         const newId = await createDocument();
-        navigate(`/${newId}`, { state: { focusTitle: true } });
+        navigate(toPageSlug('Untitled', newId), { state: { focusTitle: true } });
         setIsMobileOpen(false);
     }, [createDocument, navigate]);
 
@@ -506,7 +507,7 @@ export function Sidebar() {
                                 <div className="mb-4">
                                     <div className="px-3 py-1 text-xs font-semibold text-neutral-600 dark:text-neutral-500 uppercase">Favorites</div>
                                     {favorites.map(doc => (
-                                        <NavLink key={doc.id} to={`/${doc.id}`} className={({ isActive }) => cn("group flex items-center gap-2 py-1 px-3 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded mx-2 min-h-[30px]", isActive && "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium")}>
+                                        <NavLink key={doc.id} to={toPageSlug(doc.title, doc.id)} className={({ isActive }) => cn("group flex items-center gap-2 py-1 px-3 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded mx-2 min-h-[30px]", isActive && "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium")}>
                                             <div className="flex items-center justify-center h-4 w-4 mr-1 shrink-0">{doc.icon || <FileText className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />}</div>
                                             <span className="truncate flex-1">{doc.title || 'Untitled'}</span>
                                         </NavLink>

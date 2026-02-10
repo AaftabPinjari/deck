@@ -6,6 +6,7 @@ interface ResizableImageProps {
     initialWidth?: number;
     onWidthChange: (width: number) => void;
     onClear: () => void;
+    readOnly?: boolean;
 }
 
 // Pre-defined constants to avoid re-creation
@@ -18,6 +19,7 @@ export const ResizableImage = memo(function ResizableImage({
     initialWidth = 100,
     onWidthChange,
     onClear,
+    readOnly,
 }: ResizableImageProps) {
     const [width, setWidth] = useState(initialWidth);
     const [isResizing, setIsResizing] = useState(false);
@@ -29,6 +31,7 @@ export const ResizableImage = memo(function ResizableImage({
     widthRef.current = width;
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        if (readOnly) return;
         e.preventDefault();
         e.stopPropagation();
 
@@ -60,7 +63,7 @@ export const ResizableImage = memo(function ResizableImage({
 
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
-    }, [onWidthChange]);
+    }, [onWidthChange, readOnly]);
 
     return (
         <div
@@ -71,21 +74,25 @@ export const ResizableImage = memo(function ResizableImage({
             <img src={src} alt={alt} className="w-full rounded-md shadow-sm" draggable={false} />
 
             {/* Resize handle */}
-            <div
-                className="absolute right-0 bottom-0 w-6 h-6 cursor-nwse-resize z-10 opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center"
-                onMouseDown={handleMouseDown}
-            >
-                <svg width="12" height="12" viewBox="0 0 12 12" className="text-blue-500">
-                    <path d="M11 1v10H1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-            </div>
+            {!readOnly && (
+                <div
+                    className="absolute right-0 bottom-0 w-6 h-6 cursor-nwse-resize z-10 opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center"
+                    onMouseDown={handleMouseDown}
+                >
+                    <svg width="12" height="12" viewBox="0 0 12 12" className="text-blue-500">
+                        <path d="M11 1v10H1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                </div>
+            )}
 
             {/* Edit button */}
-            <div className="absolute right-2 top-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
-                <button className="p-1 bg-black/50 text-white rounded hover:bg-black/70 text-xs" onClick={onClear}>
-                    Edit
-                </button>
-            </div>
+            {!readOnly && (
+                <div className="absolute right-2 top-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
+                    <button className="p-1 bg-black/50 text-white rounded hover:bg-black/70 text-xs" onClick={onClear}>
+                        Edit
+                    </button>
+                </div>
+            )}
 
             {/* Width indicator */}
             {isResizing && (

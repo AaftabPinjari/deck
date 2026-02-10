@@ -1,12 +1,17 @@
-import { useRef, useState, useLayoutEffect, memo } from 'react';
+import { useRef, useState, useLayoutEffect, memo, lazy, Suspense } from 'react';
 import { Block as BlockType } from '../../store/useDocumentStore';
 import { cn } from '../../lib/utils';
 import { GripVertical, Square, CheckSquare, Copy, Check, Info, Video, ChevronRight } from 'lucide-react';
-import { TableBlock } from './TableBlockComponent';
-import { ColumnBlock } from './ColumnBlock';
 import { BlockMenu } from './BlockMenu';
 import { ResizableImage } from './ResizableImage';
-import { BookmarkBlock } from './BookmarkBlock';
+
+// Lazy load heavy sub-components (each pulls in significant dependencies)
+const TableBlock = lazy(() => import('./TableBlockComponent').then(m => ({ default: m.TableBlock })));
+const ColumnBlock = lazy(() => import('./ColumnBlock').then(m => ({ default: m.ColumnBlock })));
+const BookmarkBlock = lazy(() => import('./BookmarkBlock').then(m => ({ default: m.BookmarkBlock })));
+const KanbanBlock = lazy(() => import('./KanbanBlock').then(m => ({ default: m.KanbanBlock })));
+const TableOfContentsBlock = lazy(() => import('./TableOfContentsBlock').then(m => ({ default: m.TableOfContentsBlock })));
+const CodeBlock = lazy(() => import('./CodeBlock').then(m => ({ default: m.CodeBlock })));
 
 interface BlockProps {
     block: BlockType;
@@ -23,10 +28,11 @@ interface BlockProps {
     index?: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     dragHandleProps?: any;
+    readOnly?: boolean;
     className?: string;
 }
 
-export const Block = memo(function Block({ block, documentId, onChange, onKeyDown, onFocus, onTypeChange, onSlashMenu, onUpdate, onDelete, onDuplicate, index, dragHandleProps, className }: BlockProps) {
+export const Block = memo(function Block({ block, documentId, onChange, onKeyDown, onFocus, onTypeChange, onSlashMenu, onUpdate, onDelete, onDuplicate, index, dragHandleProps, className, readOnly }: BlockProps) {
     const contentRef = useRef<HTMLDivElement>(null);
     const [copied, setCopied] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -35,8 +41,6 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
     const previousType = useRef(block.type);
 
     useLayoutEffect(() => {
-        // If the block type changes, we usually want to force an update (e.g. converting /todo to empty todo)
-        // even if the element is focused.
         const typeChanged = previousType.current !== block.type;
 
         if (contentRef.current && contentRef.current.innerHTML !== block.content) {
@@ -49,6 +53,7 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
     }, [block.content, block.type]);
 
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+        if (readOnly) return;
         const newContent = e.currentTarget.innerHTML;
         onChange(block.id, newContent);
     };
@@ -62,11 +67,14 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
     };
 
     const toggleTodo = () => {
+        if (readOnly) return;
         const checked = block.props?.checked;
         onUpdate?.(block.id, { props: { ...block.props, checked: !checked } });
     };
 
     const handleKeyDownLocal = (e: React.KeyboardEvent) => {
+        if (readOnly) return;
+
         if (e.key === '/') {
             onSlashMenu?.(block.id);
         }
@@ -104,16 +112,15 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
     };
 
     const handlePaste = (e: React.ClipboardEvent) => {
+        if (readOnly) return;
         const text = e.clipboardData.getData('text');
         const selection = window.getSelection();
 
-        // Simple URL regex
         const isUrl = /^(http|https):\/\/[^ "]+$/.test(text);
 
         if (isUrl && selection && !selection.isCollapsed && selection.rangeCount > 0) {
             e.preventDefault();
             document.execCommand('createLink', false, text);
-            // Ensure state is updated
             if (contentRef.current) {
                 onChange(block.id, contentRef.current.innerHTML);
             }
@@ -134,34 +141,34 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                 backgroundColor: bgColor || undefined,
             }}
         >
-            {/* Drag Handle - click to open menu, drag to reorder */}
-            <div
-                ref={dragHandleRef}
-                className="absolute top-1.5 p-0.5 rounded opacity-0 group-hover:opacity-100 cursor-grab hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400"
-                style={{ left: `${(level * 1.5)}rem` }}
-                contentEditable={false}
-                onMouseDown={(e) => {
-                    // Store start position for click detection
-                    (e.currentTarget as any)._startX = e.clientX;
-                    (e.currentTarget as any)._startY = e.clientY;
-                }}
-                onMouseUp={(e) => {
-                    const startX = (e.currentTarget as any)._startX;
-                    const startY = (e.currentTarget as any)._startY;
-                    const dx = Math.abs(e.clientX - startX);
-                    const dy = Math.abs(e.clientY - startY);
-                    // If mouse moved less than 5px, treat as click
-                    if (dx < 5 && dy < 5) {
-                        e.stopPropagation();
-                        setMenuOpen(true);
-                    }
-                }}
-                {...dragHandleProps}
-            >
-                <GripVertical className="w-4 h-4" />
-            </div>
+            {/* Drag Handle - Hidden in Read Only */}
+            {!readOnly && (
+                <div
+                    ref={dragHandleRef}
+                    className="absolute top-1.5 p-0.5 rounded opacity-0 group-hover:opacity-100 cursor-grab hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400"
+                    style={{ left: `${(level * 1.5)}rem` }}
+                    contentEditable={false}
+                    onMouseDown={(e) => {
+                        (e.currentTarget as any)._startX = e.clientX;
+                        (e.currentTarget as any)._startY = e.clientY;
+                    }}
+                    onMouseUp={(e) => {
+                        const startX = (e.currentTarget as any)._startX;
+                        const startY = (e.currentTarget as any)._startY;
+                        const dx = Math.abs(e.clientX - startX);
+                        const dy = Math.abs(e.clientY - startY);
+                        if (dx < 5 && dy < 5) {
+                            e.stopPropagation();
+                            setMenuOpen(true);
+                        }
+                    }}
+                    {...dragHandleProps}
+                >
+                    <GripVertical className="w-4 h-4" />
+                </div>
+            )}
 
-            {menuOpen && (
+            {menuOpen && !readOnly && (
                 <BlockMenu
                     isOpen={menuOpen}
                     onClose={() => setMenuOpen(false)}
@@ -215,7 +222,8 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                 {block.type === 'todo' && (
                     <div
                         className={cn(
-                            "cursor-pointer hover:text-neutral-700 transition-colors",
+                            "transition-colors",
+                            !readOnly && "cursor-pointer hover:text-neutral-700",
                             block.props?.checked ? "text-blue-500" : "text-neutral-500"
                         )}
                         onClick={toggleTodo}
@@ -232,7 +240,10 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                 )}
                 {block.type === 'toggle' && (
                     <div
-                        className="cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded p-0.5 transition-colors"
+                        className={cn(
+                            "rounded p-0.5 transition-colors",
+                            !readOnly && "cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                        )}
                         onClick={() => {
                             const isOpen = block.props?.isOpen ?? true;
                             onUpdate?.(block.id, { props: { ...block.props, isOpen: !isOpen } });
@@ -254,57 +265,41 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                         <ResizableImage
                             src={block.content}
                             initialWidth={block.props?.width || 100}
-                            onWidthChange={(width) => onUpdate?.(block.id, { props: { ...block.props, width } })}
-                            onClear={() => onChange(block.id, '')}
+                            onWidthChange={(width) => !readOnly && onUpdate?.(block.id, { props: { ...block.props, width } })}
+                            onClear={() => !readOnly && onChange(block.id, '')}
+                            readOnly={readOnly}
                         />
                     ) : (
-                        <input
-                            className="w-full p-4 bg-neutral-100 dark:bg-neutral-800 rounded-md text-neutral-800 dark:text-neutral-200 outline-none border border-transparent focus:border-neutral-300 dark:focus:border-neutral-600 transition-colors placeholder:text-neutral-500"
-                            placeholder="Paste image URL and press Enter..."
-                            defaultValue=""
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    onChange(block.id, e.currentTarget.value);
-                                    onKeyDown(e, block.id);
-                                } else {
-                                    e.stopPropagation();
-                                }
-                            }}
-                            onBlur={(e) => {
-                                if (e.currentTarget.value) {
-                                    onChange(block.id, e.currentTarget.value);
-                                }
-                            }}
-                            autoFocus
-                        />
+                        !readOnly ? (
+                            <input
+                                className="w-full p-4 bg-neutral-100 dark:bg-neutral-800 rounded-md text-neutral-800 dark:text-neutral-200 outline-none border border-transparent focus:border-neutral-300 dark:focus:border-neutral-600 transition-colors placeholder:text-neutral-500"
+                                placeholder="Paste image URL and press Enter..."
+                                defaultValue=""
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        onChange(block.id, e.currentTarget.value);
+                                        onKeyDown(e, block.id);
+                                    } else {
+                                        e.stopPropagation();
+                                    }
+                                }}
+                                onBlur={(e) => {
+                                    if (e.currentTarget.value) {
+                                        onChange(block.id, e.currentTarget.value);
+                                    }
+                                }}
+                                autoFocus
+                            />
+                        ) : null
                     )}
                 </div>
             ) : block.type === 'divider' ? (
                 <hr className="w-full border-t border-neutral-300 dark:border-neutral-700 my-2" />
             ) : block.type === 'code' ? (
-                <div className="relative flex-1 min-w-0 group/code">
-                    <div className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 transition-opacity z-10">
-                        <button
-                            onClick={handleCopy}
-                            className="p-1.5 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded text-neutral-600 dark:text-neutral-300 transition-colors"
-                            title="Copy code"
-                        >
-                            {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                        </button>
-                    </div>
-                    <div
-                        ref={contentRef}
-                        contentEditable
-                        suppressContentEditableWarning
-                        onInput={handleInput}
-                        onKeyDown={handleKeyDownLocal}
-                        onFocus={() => onFocus(block.id)}
-                        className="w-full bg-neutral-100 dark:bg-neutral-800 p-4 rounded-md font-mono text-sm text-neutral-800 dark:text-neutral-200 outline-none whitespace-pre overflow-x-auto"
-                        data-block-id={block.id}
-                        spellCheck={false}
-                    />
-                </div>
+                <Suspense fallback={<div className="w-full h-16 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                    <CodeBlock block={block} onChange={onChange} onUpdate={readOnly ? undefined : onUpdate!} readOnly={readOnly} />
+                </Suspense>
             ) : block.type === 'quote' ? (
                 <div className="relative w-full group/quote flex-1">
                     <div className="absolute right-2 top-0 opacity-0 group-hover/quote:opacity-100 transition-opacity z-10">
@@ -318,12 +313,12 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                     </div>
                     <div
                         ref={contentRef}
-                        contentEditable
+                        contentEditable={!readOnly}
                         suppressContentEditableWarning
                         onInput={handleInput}
                         onKeyDown={handleKeyDownLocal}
                         onPaste={handlePaste}
-                        onFocus={() => onFocus(block.id)}
+                        onFocus={() => !readOnly && onFocus(block.id)}
                         className={cn(
                             "flex-1 outline-none min-h-[1.5em]",
                             "pl-4 text-lg italic",
@@ -347,10 +342,12 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                             />
                         </div>
                     ) : (
-                        <div className="p-4 bg-neutral-100 dark:bg-neutral-800 rounded-md text-neutral-500 flex items-center gap-2">
-                            <Video className="w-5 h-5" />
-                            <span>Add a video embed link...</span>
-                        </div>
+                        !readOnly ? (
+                            <div className="p-4 bg-neutral-100 dark:bg-neutral-800 rounded-md text-neutral-500 flex items-center gap-2">
+                                <Video className="w-5 h-5" />
+                                <span>Add a video embed link...</span>
+                            </div>
+                        ) : null
                     )}
                 </div>
             ) : block.type === 'callout' ? (
@@ -360,31 +357,45 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                     </div>
                     <div
                         ref={contentRef}
-                        contentEditable
+                        contentEditable={!readOnly}
                         suppressContentEditableWarning
                         onInput={handleInput}
                         onKeyDown={handleKeyDownLocal}
                         onPaste={handlePaste}
-                        onFocus={() => onFocus(block.id)}
+                        onFocus={() => !readOnly && onFocus(block.id)}
                         className="flex-1 outline-none text-neutral-800 dark:text-neutral-200 empty:before:content-['Shift+Enter_for_next_line'] empty:before:text-neutral-400"
                         data-block-id={block.id}
                     />
                 </div>
             ) : block.type === 'table' ? (
-                <TableBlock block={block} onUpdate={onUpdate!} />
+                <Suspense fallback={<div className="w-full h-20 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                    <TableBlock block={block} onUpdate={readOnly ? undefined : onUpdate!} readOnly={readOnly} />
+                </Suspense>
             ) : block.type === 'column_container' ? (
-                <ColumnBlock block={block} documentId={documentId} onUpdate={onUpdate!} />
+                <Suspense fallback={<div className="w-full h-20 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                    <ColumnBlock block={block} documentId={documentId} onUpdate={readOnly ? undefined : onUpdate!} readOnly={readOnly} />
+                </Suspense>
             ) : block.type === 'bookmark' ? (
-                <BookmarkBlock block={block} onUpdate={onUpdate!} onKeyDown={onKeyDown} />
+                <Suspense fallback={<div className="w-full h-16 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                    <BookmarkBlock block={block} onUpdate={readOnly ? undefined : onUpdate!} onKeyDown={onKeyDown} readOnly={readOnly} />
+                </Suspense>
+            ) : block.type === 'kanban' ? (
+                <Suspense fallback={<div className="w-full h-32 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                    <KanbanBlock block={block} documentId={documentId} onUpdate={readOnly ? undefined : onUpdate!} readOnly={readOnly} />
+                </Suspense>
+            ) : block.type === 'table_of_contents' ? (
+                <Suspense fallback={<div className="w-full h-16 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                    <TableOfContentsBlock block={block} documentId={documentId} readOnly={readOnly} />
+                </Suspense>
             ) : (
                 <div
                     ref={contentRef}
-                    contentEditable
+                    contentEditable={!readOnly}
                     suppressContentEditableWarning
                     onInput={handleInput}
                     onKeyDown={handleKeyDownLocal}
                     onPaste={handlePaste}
-                    onFocus={() => onFocus(block.id)}
+                    onFocus={() => !readOnly && onFocus(block.id)}
                     className={cn(
                         "flex-1 outline-none min-h-[1.5em]",
                         !textColor && "text-neutral-800 dark:text-neutral-200",
@@ -392,7 +403,7 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                         block.type === 'h2' && "text-2xl font-semibold mb-2",
                         block.type === 'h3' && "text-xl font-medium mb-1",
                         block.type === 'todo' && block.props?.checked && "line-through text-neutral-400",
-                        "empty:before:content-[''] empty:before:text-neutral-300 focus:empty:before:content-['Type_/_for_options.']",
+                        !readOnly && "empty:before:content-[''] empty:before:text-neutral-300 focus:empty:before:content-['Type_/_for_options.']",
                         (block.type === 'h1' || block.type === 'h2' || block.type === 'h3') && "placeholder:text-neutral-200"
                     )}
                     data-block-id={block.id}

@@ -6,7 +6,7 @@ import { auth } from '../services/auth';
 import { getTemplateById } from '../data/templates';
 import { getRandomCover, getRandomIcon } from '../lib/defaults';
 
-export type BlockType = 'text' | 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'todo' | 'quote' | 'divider' | 'image' | 'code' | 'callout' | 'video' | 'toggle' | 'table' | 'column_container' | 'bookmark';
+export type BlockType = 'text' | 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'todo' | 'quote' | 'divider' | 'image' | 'code' | 'callout' | 'video' | 'toggle' | 'table' | 'column_container' | 'bookmark' | 'kanban' | 'table_of_contents';
 
 export interface Block {
     id: string;
@@ -29,8 +29,11 @@ export interface Document {
     isFavorite?: boolean;
     isArchived?: boolean;
     isPublished?: boolean;
-    isFullWidth?: boolean;
-    fontStyle?: 'sans' | 'serif' | 'mono';
+    isFullWidth: boolean;
+    isSmallText: boolean;
+    isLocked: boolean;
+    fontStyle: 'sans' | 'serif' | 'mono';
+    updatedAt: string;
 }
 
 interface DocumentState {
@@ -103,7 +106,10 @@ export const useDocumentStore = create<DocumentState>()(
                             isArchived: d.is_archived ?? false,
                             isPublished: d.is_published ?? false,
                             isFullWidth: d.is_full_width ?? false,
+                            isSmallText: d.is_small_text ?? false,
+                            isLocked: d.is_locked ?? false,
                             fontStyle: (d.font_style as any) ?? 'sans',
+                            updatedAt: d.updated_at || new Date().toISOString(),
                         };
                     });
 
@@ -166,6 +172,11 @@ export const useDocumentStore = create<DocumentState>()(
                     parentId,
                     createdAt: Date.now(),
                     isExpanded: true,
+                    isFullWidth: false,
+                    isSmallText: false,
+                    isLocked: false,
+                    fontStyle: 'sans',
+                    updatedAt: new Date().toISOString(),
                 };
 
                 // Optimistic Update
@@ -249,6 +260,11 @@ export const useDocumentStore = create<DocumentState>()(
                     parentId,
                     createdAt: Date.now(),
                     isExpanded: true,
+                    isFullWidth: false,
+                    isSmallText: false,
+                    isLocked: false,
+                    fontStyle: 'sans',
+                    updatedAt: new Date().toISOString(),
                 };
 
                 // Optimistic Update
@@ -312,7 +328,11 @@ export const useDocumentStore = create<DocumentState>()(
                     return {
                         documents: {
                             ...state.documents,
-                            [id]: { ...doc, ...partial },
+                            [id]: {
+                                ...doc,
+                                ...partial,
+                                updatedAt: new Date().toISOString()
+                            },
                         },
                     };
                 });
@@ -508,6 +528,8 @@ export const useDocumentStore = create<DocumentState>()(
                             icon: original.icon,
                             cover_image: original.coverImage,
                             is_full_width: original.isFullWidth,
+                            is_small_text: original.isSmallText,
+                            is_locked: original.isLocked,
                             font_style: original.fontStyle,
                             parent_id: parentId,
                             user_id: user.id, // Fixed: duplicate was missing owner
@@ -575,7 +597,7 @@ export const useDocumentStore = create<DocumentState>()(
                     newContent.splice(index, 0, block);
 
                     return {
-                        documents: { ...state.documents, [docId]: { ...doc, content: newContent } }
+                        documents: { ...state.documents, [docId]: { ...doc, content: newContent, updatedAt: new Date().toISOString() } }
                     };
                 });
 
@@ -604,7 +626,7 @@ export const useDocumentStore = create<DocumentState>()(
                     return {
                         documents: {
                             ...state.documents,
-                            [docId]: { ...doc, content: newContent }
+                            [docId]: { ...doc, content: newContent, updatedAt: new Date().toISOString() }
                         }
                     };
                 });
@@ -626,7 +648,7 @@ export const useDocumentStore = create<DocumentState>()(
                     const newContent = doc.content.filter(b => b.id !== blockId);
 
                     return {
-                        documents: { ...state.documents, [docId]: { ...doc, content: newContent } }
+                        documents: { ...state.documents, [docId]: { ...doc, content: newContent, updatedAt: new Date().toISOString() } }
                     };
                 });
 

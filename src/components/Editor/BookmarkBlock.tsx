@@ -11,8 +11,9 @@ interface BookmarkData {
 
 interface BookmarkBlockProps {
     block: Block;
-    onUpdate: (id: string, props: Record<string, unknown>) => void;
+    onUpdate?: (id: string, props: Record<string, unknown>) => void;
     onKeyDown?: (e: React.KeyboardEvent, id: string) => void;
+    readOnly?: boolean;
 }
 
 // Parse OpenGraph and Twitter meta tags from HTML
@@ -120,7 +121,9 @@ export const BookmarkBlock = memo(function BookmarkBlock({ block, onUpdate, onKe
 
         try {
             const metadata = await fetchMetadata(finalUrl, abortControllerRef.current.signal);
-            onUpdate(block.id, { props: metadata });
+            if (onUpdate) {
+                onUpdate(block.id, { props: metadata });
+            }
 
             if (originalEvent && onKeyDown) {
                 onKeyDown(originalEvent, block.id);

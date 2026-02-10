@@ -3,6 +3,7 @@ import { Modal } from '../ui/Modal';
 import { templates } from '../../data/templates';
 import { useDocumentStore } from '../../store/useDocumentStore';
 import { cn } from '../../lib/utils';
+import { toPageSlug } from '../../lib/slugUtils';
 
 interface TemplatesModalProps {
     isOpen: boolean;
@@ -16,7 +17,8 @@ export function TemplatesModal({ isOpen, onClose }: TemplatesModalProps) {
     const handleSelectTemplate = async (templateId: string) => {
         const docId = await createDocumentFromTemplate(templateId);
         if (docId) {
-            navigate(`/${docId}`);
+            const newDoc = useDocumentStore.getState().documents[docId];
+            navigate(toPageSlug(newDoc?.title || 'Untitled', docId));
         }
         onClose();
     };

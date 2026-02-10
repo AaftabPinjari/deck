@@ -3,13 +3,15 @@ import { useDocumentStore } from '../store/useDocumentStore';
 import { ChevronRight, FileText } from 'lucide-react';
 import { Publish } from './Publish';
 import { MoreMenu } from './MoreMenu';
+import { extractIdFromSlug, toPageSlug } from '../lib/slugUtils';
 
 export function Breadcrumbs() {
     const location = useLocation();
     const { documents } = useDocumentStore();
 
-    // Extract document ID from URL /:documentId
-    const documentId = location.pathname.split('/')[1];
+    // Extract document ID from Notion-style slug URL
+    const slug = location.pathname.split('/')[1];
+    const documentId = extractIdFromSlug(slug || '');
 
     if (!documentId || !documents[documentId]) return null;
 
@@ -35,7 +37,7 @@ export function Breadcrumbs() {
                     <div key={doc.id} className="flex items-center gap-1 shrink-0">
                         <ChevronRight className="h-3 w-3 text-neutral-500 dark:text-neutral-400" />
                         <Link
-                            to={`/${doc.id}`}
+                            to={toPageSlug(doc.title, doc.id)}
                             className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded px-1 py-0.5 transition-colors max-w-[150px] text-neutral-700 dark:text-neutral-300"
                         >
                             <span className="text-lg leading-none">{doc.icon || <FileText className="h-3 w-3 text-neutral-500 dark:text-neutral-400" />}</span>
