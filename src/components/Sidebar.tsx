@@ -127,7 +127,7 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
                 {...listeners}
                 className={cn(
                     "group flex items-center py-1.5 pr-2 text-sm rounded-sm min-h-[28px] cursor-grab active:cursor-grabbing",
-                    "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800",
+                    "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800",
                     isNesting && "bg-transparent hover:bg-transparent"
                 )}
                 style={{ paddingLeft: `${level * 16 + 8}px` }}
@@ -141,7 +141,7 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
                     onClick={handleToggle}
                     onMouseDown={(e) => e.stopPropagation()}
                 >
-                    <ChevronRight className={cn("h-3.5 w-3.5 text-neutral-400 transition-transform", isExpanded && "rotate-90")} />
+                    <ChevronRight className={cn("h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400 transition-transform", isExpanded && "rotate-90")} />
                 </div>
 
                 {isRenaming ? (
@@ -150,7 +150,7 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
                         onClick={(e) => e.preventDefault()}
                     >
                         <div className="flex items-center justify-center h-5 w-5 shrink-0 text-base">
-                            {document.icon || <FileText className="h-4 w-4 text-neutral-400" />}
+                            {document.icon || <FileText className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />}
                         </div>
                         <input
                             value={title}
@@ -183,7 +183,7 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
                         }
                     >
                         <div className="flex items-center justify-center h-5 w-5 shrink-0 text-base">
-                            {document.icon || <FileText className="h-4 w-4 text-neutral-400" />}
+                            {document.icon || <FileText className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />}
                         </div>
                         <span
                             className="truncate flex-1"
@@ -209,7 +209,7 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
                             onMouseDown={(e) => e.stopPropagation()}
                             className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-500"
                         >
-                            {document.isFavorite ? <span className="text-yellow-500 text-xs">★</span> : <span className="text-neutral-400 text-xs">☆</span>}
+                            {document.isFavorite ? <span className="text-yellow-500 text-xs">★</span> : <span className="text-neutral-500 dark:text-neutral-400 text-xs">☆</span>}
                         </div>
                         <div
                             role="button"
@@ -219,7 +219,7 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
                                 onDeleteLabel(document);
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-500"
+                            className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400"
                         >
                             <Trash className="h-3 w-3" />
                         </div>
@@ -227,7 +227,7 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
                             role="button"
                             onClick={handleCreateChild}
                             onMouseDown={(e) => e.stopPropagation()}
-                            className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-500"
+                            className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400"
                         >
                             <Plus className="h-3 w-3" />
                         </div>
@@ -263,7 +263,7 @@ const DocumentList = ({ parentId = null, level = 0, onDeleteLabel, dropState }: 
         : rootDocumentIds;
 
     if (!docIds || docIds.length === 0) {
-        if (level === 0 && !parentId) return <div className="p-4 text-xs text-neutral-400 italic">No pages yet</div>;
+        if (level === 0 && !parentId) return <div className="p-4 text-xs text-neutral-500 dark:text-neutral-400 italic">No pages yet</div>;
         return null;
     }
 
@@ -327,7 +327,7 @@ export function Sidebar() {
 
     const handleAddPage = useCallback(async () => {
         const newId = await createDocument();
-        navigate(`/${newId}`);
+        navigate(`/${newId}`, { state: { focusTitle: true } });
         setIsMobileOpen(false);
     }, [createDocument, navigate]);
 
@@ -466,7 +466,7 @@ export function Sidebar() {
             <div className="md:hidden fixed top-4 left-4 z-50">
                 <button
                     onClick={() => setIsMobileOpen(!isMobileOpen)}
-                    className="p-2 bg-white dark:bg-neutral-800 rounded-md shadow border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300"
+                    className="p-2 bg-white dark:bg-neutral-800 rounded-md shadow border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300"
                 >
                     {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                 </button>
@@ -496,25 +496,25 @@ export function Sidebar() {
                         )}
                         <div className="flex-1 overflow-y-auto py-2">
                             <div className="px-2 mb-2 flex flex-col gap-1">
-                                <button onClick={() => toggleSettings(true)} className="flex items-center gap-2 w-full p-2 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"><Settings className="h-4 w-4" />Settings</button>
-                                <button onClick={() => setIsTrashOpen(true)} className="flex items-center gap-2 w-full p-2 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"><Trash className="h-4 w-4" />Trash</button>
-                                <button onClick={() => fetchDocuments()} className="flex items-center gap-2 w-full p-2 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"><div className="h-4 w-4 flex items-center justify-center">↺</div>Refresh</button>
+                                <button onClick={() => toggleSettings(true)} className="flex items-center gap-2 w-full p-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"><Settings className="h-4 w-4" />Settings</button>
+                                <button onClick={() => setIsTrashOpen(true)} className="flex items-center gap-2 w-full p-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"><Trash className="h-4 w-4" />Trash</button>
+                                <button onClick={() => fetchDocuments()} className="flex items-center gap-2 w-full p-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"><div className="h-4 w-4 flex items-center justify-center">↺</div>Refresh</button>
                             </div>
 
                             {/* Favorites */}
                             {favorites.length > 0 && (
                                 <div className="mb-4">
-                                    <div className="px-3 py-1 text-xs font-semibold text-neutral-500 uppercase">Favorites</div>
+                                    <div className="px-3 py-1 text-xs font-semibold text-neutral-600 dark:text-neutral-500 uppercase">Favorites</div>
                                     {favorites.map(doc => (
-                                        <NavLink key={doc.id} to={`/${doc.id}`} className={({ isActive }) => cn("group flex items-center gap-2 py-1 px-3 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded mx-2 min-h-[30px]", isActive && "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium")}>
-                                            <div className="flex items-center justify-center h-4 w-4 mr-1 shrink-0">{doc.icon || <FileText className="h-4 w-4" />}</div>
+                                        <NavLink key={doc.id} to={`/${doc.id}`} className={({ isActive }) => cn("group flex items-center gap-2 py-1 px-3 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded mx-2 min-h-[30px]", isActive && "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium")}>
+                                            <div className="flex items-center justify-center h-4 w-4 mr-1 shrink-0">{doc.icon || <FileText className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />}</div>
                                             <span className="truncate flex-1">{doc.title || 'Untitled'}</span>
                                         </NavLink>
                                     ))}
                                 </div>
                             )}
 
-                            <div className="px-3 py-1 text-xs font-semibold text-neutral-500 uppercase">Private</div>
+                            <div className="px-3 py-1 text-xs font-semibold text-neutral-600 dark:text-neutral-500 uppercase">Private</div>
 
                             <DndContext
                                 sensors={sensors}
@@ -538,8 +538,8 @@ export function Sidebar() {
                         </div>
 
                         <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 flex gap-2">
-                            <button onClick={handleAddPage} className="flex items-center gap-2 flex-1 p-2 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors"><Plus className="h-4 w-4" />New Page</button>
-                            <button onClick={() => setIsTemplatesOpen(true)} className="flex items-center gap-2 p-2 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors" title="Templates"><Layout className="h-4 w-4" /></button>
+                            <button onClick={handleAddPage} className="flex items-center gap-2 flex-1 p-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors"><Plus className="h-4 w-4" />New Page</button>
+                            <button onClick={() => setIsTemplatesOpen(true)} className="flex items-center gap-2 p-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors" title="Templates"><Layout className="h-4 w-4" /></button>
                         </div>
                     </>
                 )}

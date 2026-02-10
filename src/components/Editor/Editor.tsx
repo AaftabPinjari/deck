@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useDocumentStore, BlockType } from '../../store/useDocumentStore';
 import { SortableBlock } from './SortableBlock';
 import { SlashMenu } from './SlashMenu';
@@ -21,29 +21,54 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { EditorSkeleton } from '../Skeletons/EditorSkeleton';
-import { IconPicker } from '../ui/IconPicker';
-import { CoverImagePicker } from '../ui/CoverImagePicker';
-import { ImageIcon, X, Download } from 'lucide-react';
+import { DocumentHeader } from './DocumentHeader';
 import { cn } from '../../lib/utils';
-import { isLikelyMarkdown, parseMarkdownToBlocks, blocksToMarkdown, downloadMarkdown } from '../../utils/markdownUtils';
+import { isLikelyMarkdown, parseMarkdownToBlocks } from '../../utils/markdownUtils';
 export function Editor() {
     const { documentId } = useParams();
     const navigate = useNavigate();
-    const currentDoc = useDocumentStore(useCallback((state) => documentId ? state.documents[documentId] : null, [documentId]));
-    const { updateDocument, moveBlock, updateBlock: updateBlockStore, addBlock: addBlockStore, deleteBlock: deleteBlockStore, duplicateBlock: duplicateBlockStore, isLoading, documents } = useDocumentStore();
+
+    const content = useDocumentStore(useCallback(state => documentId ? state.documents[documentId]?.content : undefined, [documentId]));
+    const isFullWidth = useDocumentStore(useCallback(state => documentId ? state.documents[documentId]?.isFullWidth : undefined, [documentId]));
+    const fontStyle = useDocumentStore(useCallback(state => documentId ? state.documents[documentId]?.fontStyle : undefined, [documentId]));
+
+    // We need documents for the mention click handler
+    const { moveBlock, updateBlock: updateBlockStore, addBlock: addBlockStore, deleteBlock: deleteBlockStore, duplicateBlock: duplicateBlockStore, isLoading, documents } = useDocumentStore();
     const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
     const [focusPosition, setFocusPosition] = useState<'start' | 'end'>('start');
     const [slashMenu, setSlashMenu] = useState<{ isOpen: boolean; anchorRect: DOMRect; blockId: string } | null>(null);
     const [mentionMenu, setMentionMenu] = useState<{ isOpen: boolean; anchorRect: DOMRect; blockId: string; query: string } | null>(null);
 
-    // Use refs to access latest state in callbacks without triggering re-creation
-    const currentDocRef = useRef(currentDoc);
+    // Refs for non-rendering state
     const slashMenuRef = useRef(slashMenu);
     const mentionMenuRef = useRef(mentionMenu);
+    const titleInputRef = useRef<HTMLInputElement>(null);
+    const location = useLocation();
 
+    // No need for currentDocRef anymore - handlers will read from store directly
+
+    // Helper to get fresh doc state
+    const getDoc = () => {
+        if (!documentId) return null;
+        return useDocumentStore.getState().documents[documentId];
+    };
+
+    // Focus title if requested via navigation state
     useEffect(() => {
-        currentDocRef.current = currentDoc;
-    }, [currentDoc]);
+        const doc = getDoc();
+        if (location.state?.focusTitle && !isLoading && doc) {
+            // Small timeout to ensure input is mounted and ready
+            setTimeout(() => {
+                titleInputRef.current?.focus();
+                // Select all text in title if unnecessary? No, usually empty for new pages.
+            }, 100);
+
+            // Clear the state so it doesn't refocus on refresh? 
+            // In react-router v6, we can't easily clear state without navigating again with replace.
+            // But since we navigate away or reload, it might persist.
+            // A simple way is to check if title is 'Untitled'.
+        }
+    }, [location.state, isLoading, documentId]); // Changed currentDoc?.id to documentId
 
     useEffect(() => {
         slashMenuRef.current = slashMenu;
@@ -53,26 +78,13 @@ export function Editor() {
         mentionMenuRef.current = mentionMenu;
     }, [mentionMenu]);
 
-    // Handle 404 - Document not found
-    if (documentId && !isLoading && !currentDoc) {
-        return (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
-                <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-2xl flex items-center justify-center mb-4 text-3xl">
-                    🤔
-                </div>
-                <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-200 mb-2">Page Not Found</h2>
-                <p className="text-neutral-500 max-w-sm mb-6">
-                    This page doesn't exist or has been deleted.
-                </p>
-                <button
-                    onClick={() => navigate('/')}
-                    className="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
-                >
-                    Go to Home
-                </button>
-            </div>
-        );
+    // Focus title logic handled in DocumentHeader now. 
+    // But we might need check for existence or loading
+    if ((!content) && !isLoading && documentId) {
+        // Double check existence in store directly to avoid race conditions?
+        // Actually, if content is undefined, it means doc doesn't exist or not loaded.
     }
+
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -82,7 +94,7 @@ export function Editor() {
     );
 
     useEffect(() => {
-        if (focusedBlockId && currentDoc) {
+        if (focusedBlockId && documentId) {
             // Small timeout to allow render to complete
             setTimeout(() => {
                 const el = document.querySelector(`[data-block-id="${focusedBlockId}"]`) as HTMLElement;
@@ -102,7 +114,8 @@ export function Editor() {
                 setFocusPosition('start'); // Reset default
             }, 0);
         }
-    }, [focusedBlockId, currentDoc?.content, focusPosition]);
+    }, [focusedBlockId, documentId, focusPosition]);
+
 
     const handleSlashMenu = useCallback((blockId: string) => {
         const el = document.querySelector(`[data-block-id="${blockId}"]`) as HTMLElement;
@@ -148,7 +161,9 @@ export function Editor() {
     // Global Markdown paste handler
     useEffect(() => {
         const handlePaste = (e: ClipboardEvent) => {
-            if (!documentId || !currentDocRef.current) return;
+            if (!documentId) return;
+            const doc = getDoc();
+            if (!doc) return;
 
             const text = e.clipboardData?.getData('text/plain');
             if (!text) return;
@@ -159,7 +174,7 @@ export function Editor() {
 
             e.preventDefault();
             const newBlocks = parseMarkdownToBlocks(text);
-            const startIndex = currentDocRef.current!.content.length;
+            const startIndex = doc.content.length;
 
             // Use for loop for better performance
             for (let i = 0; i < newBlocks.length; i++) {
@@ -170,14 +185,6 @@ export function Editor() {
         document.addEventListener('paste', handlePaste);
         return () => document.removeEventListener('paste', handlePaste);
     }, [documentId, addBlockStore]);
-
-    // Export as Markdown handler
-    const handleExportMarkdown = useCallback(() => {
-        if (!currentDoc) return;
-        const markdown = blocksToMarkdown(currentDoc.content);
-        const fullContent = `# ${currentDoc.title}\n\n${markdown}`;
-        downloadMarkdown(fullContent, currentDoc.title || 'Untitled');
-    }, [currentDoc]);
 
     const updateBlockContent = useCallback((blockId: string, content: string) => {
         if (!documentId) return;
@@ -248,8 +255,11 @@ export function Editor() {
     const onFocusBlock = useCallback(() => { }, []); // No-op, just for interface
 
     const addBlock = useCallback((afterBlockId: string, type: BlockType = 'text') => {
-        if (!documentId || !currentDocRef.current) return;
-        const currentContent = currentDocRef.current.content;
+        if (!documentId) return;
+        const doc = getDoc();
+        if (!doc) return;
+
+        const currentContent = doc.content;
 
         const prevBlock = currentContent.find(b => b.id === afterBlockId);
         const level = prevBlock?.props?.level || 0;
@@ -271,8 +281,11 @@ export function Editor() {
     }, [documentId, addBlockStore]);
 
     const deleteBlock = useCallback((blockId: string) => {
-        if (!documentId || !currentDocRef.current) return;
-        const currentContent = currentDocRef.current.content;
+        if (!documentId) return;
+        const doc = getDoc();
+        if (!doc) return;
+
+        const currentContent = doc.content;
 
         if (currentContent.length <= 1) return;
 
@@ -297,8 +310,11 @@ export function Editor() {
     }, [documentId, duplicateBlockStore]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent, blockId: string) => {
-        if (!currentDocRef.current || !documentId) return;
-        const currentContent = currentDocRef.current.content;
+        if (!documentId) return;
+        const doc = getDoc();
+        if (!doc) return;
+
+        const currentContent = doc.content;
 
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -414,8 +430,11 @@ export function Editor() {
     const handleDragEnd = useCallback((event: DragEndEvent) => {
         const { active, over } = event;
 
-        if (active.id !== over?.id && documentId && currentDocRef.current) {
-            const currentContent = currentDocRef.current.content;
+        if (active.id !== over?.id && documentId) {
+            const doc = getDoc();
+            if (!doc) return;
+            const currentContent = doc.content;
+
             const oldIndex = currentContent.findIndex((b) => b.id === active.id);
             const newIndex = currentContent.findIndex((b) => b.id === over?.id);
 
@@ -424,11 +443,11 @@ export function Editor() {
     }, [documentId, moveBlock]);
 
     const visibleBlocks = useMemo(() => {
-        if (!currentDoc) return [];
-        const blocks: typeof currentDoc.content = [];
+        if (!content) return [];
+        const blocks: typeof content = [];
         let hiddenThreshold: number | null = null;
 
-        for (const block of currentDoc.content) {
+        for (const block of content) {
             const level = block.props?.level || 0;
 
             if (hiddenThreshold !== null) {
@@ -449,139 +468,51 @@ export function Editor() {
             }
         }
         return blocks;
-    }, [currentDoc]);
+    }, [content]);
 
     if (!documentId) return <div>Select a page</div>;
-    if (isLoading && !currentDoc) return <EditorSkeleton />;
-    if (!currentDoc) return <div>Page not found</div>;
+    if (!documentId) return <div>Select a page</div>;
+    // content is undefined if doc not found or loading. 
+    // If isLoading is true, show skeleton.
+    if (isLoading && !content) return <EditorSkeleton />;
+    // If not loading and no content, then 404
+    if (!content) return (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+            <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-2xl flex items-center justify-center mb-4 text-3xl">
+                🤔
+            </div>
+            <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-200 mb-2">Page Not Found</h2>
+            <p className="text-neutral-500 max-w-sm mb-6">
+                This page doesn't exist or has been deleted.
+            </p>
+            <button
+                onClick={() => navigate('/')}
+                className="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+                Go to Home
+            </button>
+        </div>
+    );
 
-    if (!currentDoc) return <div>Page not found</div>;
+    if (!content) return <div>Page not found</div>;
 
-    const hasCover = !!currentDoc.coverImage;
-    const hasIcon = !!currentDoc.icon;
+
 
     return (
         <div className={cn(
             "transition-all duration-300",
-            currentDoc.fontStyle === 'serif' && "font-serif",
-            currentDoc.fontStyle === 'mono' && "font-mono",
-            (!currentDoc.fontStyle || currentDoc.fontStyle === 'sans') && "font-sans"
+            fontStyle === 'serif' && "font-serif",
+            fontStyle === 'mono' && "font-mono",
+            (!fontStyle || fontStyle === 'sans') && "font-sans"
         )}>
-            {/* Cover Image - Edge to Edge */}
-            <div className={cn(
-                "group/cover relative w-full",
-                hasCover ? "h-[30vh] min-h-[200px]" : "h-0"
-            )}>
-                {hasCover && (
-                    <>
-                        <div
-                            className="absolute inset-0 bg-cover bg-center"
-                            style={{ backgroundImage: `url(${currentDoc.coverImage})` }}
-                        />
-                        {/* Gradient overlay for better text readability */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-
-                        {/* Cover controls */}
-                        <div className="absolute bottom-3 right-4 opacity-0 group-hover/cover:opacity-100 transition-opacity flex gap-2">
-                            <CoverImagePicker onChange={(url) => updateDocument(documentId, { coverImage: url })}>
-                                <button className="text-xs bg-white/90 hover:bg-white dark:bg-neutral-800/90 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 px-3 py-1.5 rounded-md shadow-sm flex items-center gap-1.5 font-medium">
-                                    <ImageIcon className="h-3.5 w-3.5" />
-                                    Change cover
-                                </button>
-                            </CoverImagePicker>
-                            <button
-                                onClick={() => updateDocument(documentId, { coverImage: undefined })}
-                                className="text-xs bg-white/90 hover:bg-white dark:bg-neutral-800/90 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 px-2 py-1.5 rounded-md shadow-sm"
-                            >
-                                <X className="h-3.5 w-3.5" />
-                            </button>
-                        </div>
-                    </>
-                )}
-            </div>
+            {/* Header */}
+            <DocumentHeader documentId={documentId!} />
 
             {/* Content area with proper padding */}
             <div className={cn(
                 "mx-auto px-12 pb-32",
-                currentDoc.isFullWidth ? "max-w-full px-24" : "max-w-3xl"
+                isFullWidth ? "max-w-full px-24" : "max-w-3xl"
             )}>
-                {/* Header Controls & Icon */}
-                <div className="group/header relative mb-8">
-                    {/* Controls - Always visible on hover above title/icon */}
-                    <div className={cn(
-                        "flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity mb-2 text-xs text-neutral-500 select-none",
-                        !hasIcon && !hasCover && "opacity-100" // Show if nothing is set
-                    )}>
-                        {!hasIcon && (
-                            <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>
-                                <button className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
-                                    <span className="text-sm">😀</span>
-                                    Add icon
-                                </button>
-                            </IconPicker>
-                        )}
-                        {!hasCover && (
-                            <CoverImagePicker onChange={(url) => updateDocument(documentId, { coverImage: url })}>
-                                <button className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
-                                    <ImageIcon className="h-3.5 w-3.5" />
-                                    Add cover
-                                </button>
-                            </CoverImagePicker>
-                        )}
-                        <button
-                            onClick={handleExportMarkdown}
-                            className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors"
-                            title="Export as Markdown"
-                        >
-                            <Download className="h-3.5 w-3.5" />
-                            Export
-                        </button>
-                    </div>
-
-                    {/* Icon/Emoji */}
-                    {hasIcon && (
-                        <div className={cn(
-                            "relative group/icon inline-block",
-                            hasCover ? "-mt-16 mb-4" : "mb-4" // Negative margin to overlap cover
-                        )}>
-                            <span
-                                className={cn(
-                                    "text-7xl cursor-pointer select-none block hover:opacity-90 transition-opacity",
-                                    hasCover && "drop-shadow-lg"
-                                )}
-                            >
-                                <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>
-                                    <span>{currentDoc.icon}</span>
-                                </IconPicker>
-                            </span>
-                            {/* Remove icon button */}
-                            <button
-                                onClick={() => updateDocument(documentId, { icon: undefined })}
-                                className="absolute -top-2 -right-2 opacity-0 group-hover/icon:opacity-100 transition-opacity bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded-full p-1 shadow-sm"
-                            >
-                                <X className="h-3 w-3 text-neutral-600 dark:text-neutral-300" />
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Title */}
-                    <input
-                        className="w-full text-4xl font-bold outline-none bg-transparent placeholder:text-neutral-300 text-neutral-800 dark:text-neutral-100 placeholder-opacity-50"
-                        value={currentDoc.title}
-                        onChange={(e) => updateDocument(documentId, { title: e.target.value })}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                if (currentDoc.content.length > 0) {
-                                    const firstBlockId = currentDoc.content[0].id;
-                                    const el = document.querySelector(`[data-block-id="${firstBlockId}"]`) as HTMLElement;
-                                    el?.focus();
-                                }
-                            }
-                        }}
-                        placeholder="Untitled"
-                    />
-                </div>
 
                 <DndContext
                     sensors={sensors}
@@ -616,7 +547,7 @@ export function Editor() {
                                 // Only handle clicks directly on the container (empty space)
                                 if (target !== e.currentTarget) return;
 
-                                const content = currentDocRef.current?.content;
+                                const content = getDoc()?.content;
                                 if (!content || content.length === 0) return;
 
                                 const lastBlock = content[content.length - 1];
@@ -689,7 +620,10 @@ export function Editor() {
                         onSelect={handleSlashSelect}
                         onClose={() => setSlashMenu(null)}
                         query={
-                            currentDoc.content.find(b => b.id === slashMenu.blockId)?.content.slice(1) || ''
+                            (() => {
+                                const doc = getDoc();
+                                return doc?.content.find(b => b.id === slashMenu.blockId)?.content.slice(1) || ''
+                            })()
                         }
                     />
                 )}

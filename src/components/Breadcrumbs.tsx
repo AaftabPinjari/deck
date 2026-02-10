@@ -27,18 +27,18 @@ export function Breadcrumbs() {
 
     return (
         <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-200 dark:border-neutral-800">
-            <div className="flex items-center gap-1 text-sm text-neutral-500 overflow-hidden whitespace-nowrap">
+            <div className="flex items-center gap-1 text-sm text-neutral-700 dark:text-neutral-400 overflow-hidden whitespace-nowrap">
                 <div className="flex items-center hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded px-1 py-0.5 transition-colors">
                     <span className="text-xs">Workspace</span>
                 </div>
                 {breadcrumbs.map((doc) => (
                     <div key={doc.id} className="flex items-center gap-1 shrink-0">
-                        <ChevronRight className="h-3 w-3 text-neutral-400" />
+                        <ChevronRight className="h-3 w-3 text-neutral-500 dark:text-neutral-400" />
                         <Link
                             to={`/${doc.id}`}
-                            className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded px-1 py-0.5 transition-colors max-w-[150px]"
+                            className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded px-1 py-0.5 transition-colors max-w-[150px] text-neutral-700 dark:text-neutral-300"
                         >
-                            <span className="text-lg leading-none">{doc.icon || <FileText className="h-3 w-3" />}</span>
+                            <span className="text-lg leading-none">{doc.icon || <FileText className="h-3 w-3 text-neutral-500 dark:text-neutral-400" />}</span>
                             <span className="truncate">{doc.title || 'Untitled'}</span>
                         </Link>
                     </div>

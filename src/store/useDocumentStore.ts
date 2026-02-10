@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { documentService } from '../services/documentService';
 import { auth } from '../services/auth';
 import { getTemplateById } from '../data/templates';
+import { getRandomCover, getRandomIcon } from '../lib/defaults';
 
 export type BlockType = 'text' | 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'todo' | 'quote' | 'divider' | 'image' | 'code' | 'callout' | 'video' | 'toggle' | 'table' | 'column_container' | 'bookmark';
 
@@ -158,6 +159,8 @@ export const useDocumentStore = create<DocumentState>()(
                 const newDoc: Document = {
                     id,
                     title: 'Untitled',
+                    icon: getRandomIcon(),
+                    coverImage: getRandomCover(),
                     content: [{ id: blockId, type: 'text', content: '' }],
                     children: [],
                     parentId,
@@ -193,6 +196,8 @@ export const useDocumentStore = create<DocumentState>()(
                         parent_id: newDoc.parentId,
                         user_id: user.id,
                         is_expanded: newDoc.isExpanded,
+                        cover_image: newDoc.coverImage,
+                        icon: newDoc.icon,
                         position: 0
                     });
 
@@ -273,6 +278,8 @@ export const useDocumentStore = create<DocumentState>()(
                             parent_id: newDoc.parentId,
                             user_id: user.id,
                             is_expanded: newDoc.isExpanded,
+                            cover_image: newDoc.coverImage,
+                            icon: newDoc.icon,
                             position: 0
                         });
 
