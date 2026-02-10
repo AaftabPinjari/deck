@@ -40,18 +40,24 @@ export function SearchCommand() {
             open={open}
             onOpenChange={setOpen}
             label="Global Search"
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-[20vh]"
+            className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-start justify-center md:pt-[20vh]"
             onClick={(e: React.MouseEvent) => {
                 if (e.target === e.currentTarget) setOpen(false);
             }}
         >
-            <div className="bg-white dark:bg-neutral-900 w-full max-w-lg rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center border-b border-neutral-200 dark:border-neutral-800 px-3">
-                    <Search className="h-4 w-4 text-neutral-500 mr-2" />
+            <div className="bg-white dark:bg-neutral-900 w-full h-full md:h-auto md:max-w-lg md:rounded-xl shadow-2xl border-x md:border border-neutral-200 dark:border-neutral-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col">
+                <div className="flex items-center border-b border-neutral-200 dark:border-neutral-800 px-3 md:px-4">
+                    <Search className="h-5 md:h-4 w-5 md:w-4 text-neutral-500 mr-2" />
                     <Command.Input
                         placeholder="Search workspace..."
-                        className="w-full py-3 text-sm outline-none bg-transparent placeholder:text-neutral-500"
+                        className="w-full py-4 md:py-3 text-base md:text-sm outline-none bg-transparent placeholder:text-neutral-500"
                     />
+                    <button
+                        onClick={() => setOpen(false)}
+                        className="md:hidden ml-2 p-1 text-neutral-500 text-xs font-medium"
+                    >
+                        Cancel
+                    </button>
                 </div>
 
                 <Command.List className="max-h-[300px] overflow-y-auto p-2">

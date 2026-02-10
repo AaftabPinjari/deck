@@ -526,8 +526,8 @@ export function Editor() {
 
             {/* Content area with proper padding */}
             <div className={cn(
-                "mx-auto px-12 pb-32",
-                isFullWidth ? "max-w-full px-24" : "max-w-3xl",
+                "mx-auto px-4 md:px-12 pb-32 transition-all duration-300",
+                isFullWidth ? "max-w-full px-6 md:px-24" : "max-w-3xl",
                 useDocumentStore.getState().documents[documentId!]?.isSmallText ? "text-sm" : "text-base"
             )}>
 

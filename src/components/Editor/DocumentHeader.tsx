@@ -72,8 +72,8 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
 
             {/* Header Content */}
             <div className={cn(
-                "mx-auto px-12 transition-all duration-300",
-                currentDoc.isFullWidth ? "max-w-full px-24" : "max-w-3xl"
+                "mx-auto px-4 md:px-12 transition-all duration-300",
+                currentDoc.isFullWidth ? "max-w-full px-6 md:px-24" : "max-w-3xl"
             )}>
                 {/* Header Controls & Icon */}
                 <div className="group/header relative mb-8 pt-8">
@@ -104,11 +104,11 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                     {hasIcon && (
                         <div className={cn(
                             "relative group/icon inline-block",
-                            hasCover ? "-mt-24 mb-4" : "mb-4" // Adjusted margin for visual balance
+                            hasCover ? "-mt-16 md:-mt-24 mb-4" : "mb-4" // Adjusted margin for visual balance
                         )}>
                             <span
                                 className={cn(
-                                    "text-7xl cursor-pointer select-none block hover:opacity-90 transition-opacity",
+                                    "text-5xl md:text-7xl cursor-pointer select-none block hover:opacity-90 transition-opacity",
                                     hasCover && "drop-shadow-lg"
                                 )}
                             >
@@ -134,7 +134,7 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                     <input
                         ref={titleInputRef}
                         className={cn(
-                            "w-full text-4xl font-bold outline-none bg-transparent placeholder:text-neutral-300 text-neutral-800 dark:text-neutral-100 placeholder-opacity-50 break-words",
+                            "w-full text-3xl md:text-4xl font-bold outline-none bg-transparent placeholder:text-neutral-300 text-neutral-800 dark:text-neutral-100 placeholder-opacity-50 break-words",
                             currentDoc.isLocked && "pointer-events-none"
                         )}
                         value={currentDoc.title}

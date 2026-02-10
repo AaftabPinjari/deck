@@ -5,8 +5,6 @@ import {
     Plus,
     Trash,
     FileText,
-    Menu,
-    X,
     Settings
 } from 'lucide-react';
 import { UserMenu } from './UserMenu';
@@ -304,7 +302,7 @@ export function Sidebar() {
     const [docToDelete, setDocToDelete] = useState<Document | null>(null);
     const [isTrashOpen, setIsTrashOpen] = useState(false);
     const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
-    const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const { isMobileSidebarOpen, setIsMobileSidebarOpen } = useSettingsStore();
 
     // DnD State
     const [activeDragDoc, setActiveDragDoc] = useState<Document | null>(null);
@@ -329,8 +327,8 @@ export function Sidebar() {
     const handleAddPage = useCallback(async () => {
         const newId = await createDocument();
         navigate(toPageSlug('Untitled', newId), { state: { focusTitle: true } });
-        setIsMobileOpen(false);
-    }, [createDocument, navigate]);
+        setIsMobileSidebarOpen(false);
+    }, [createDocument, navigate, setIsMobileSidebarOpen]);
 
     const confirmDelete = useCallback(() => {
         if (docToDelete) {
@@ -463,27 +461,17 @@ export function Sidebar() {
 
     return (
         <>
-            {/* Mobile Toggle & Menu... (Same as before) */}
-            <div className="md:hidden fixed top-4 left-4 z-50">
-                <button
-                    onClick={() => setIsMobileOpen(!isMobileOpen)}
-                    className="p-2 bg-white dark:bg-neutral-800 rounded-md shadow border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300"
-                >
-                    {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                </button>
-            </div>
-
             {/* Overlay for mobile */}
-            {isMobileOpen && (
+            {isMobileSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 md:hidden"
-                    onClick={() => setIsMobileOpen(false)}
+                    className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-30 md:hidden animate-in fade-in duration-200"
+                    onClick={() => setIsMobileSidebarOpen(false)}
                 />
             )}
 
             <div className={cn(
-                "fixed inset-y-0 left-0 z-40 w-64 border-r border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900 flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0 bg-white md:bg-transparent",
-                isMobileOpen ? "translate-x-0" : "-translate-x-full md:relative"
+                "fixed inset-y-0 left-0 z-40 w-72 border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex flex-col transition-all duration-300 ease-in-out md:relative md:inset-auto md:translate-x-0 shadow-xl md:shadow-none",
+                isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
             )}>
                 {isLoading ? (
                     <SidebarSkeleton />
