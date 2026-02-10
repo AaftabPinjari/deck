@@ -12,7 +12,7 @@ export function Breadcrumbs() {
     const { documents } = useDocumentStore();
     const { setIsMobileSidebarOpen } = useSettingsStore();
 
-    // Extract document ID from Notion-style slug URL
+    // Extract document ID from Deck-style slug URL
     const slug = location.pathname.split('/')[1];
     const documentId = extractIdFromSlug(slug || '');
 
@@ -49,7 +49,7 @@ export function Breadcrumbs() {
                     const isLast = index === breadcrumbs.length - 1;
                     const isFirst = index === 0;
 
-                    // Notion behavior: on mobile, often just shows current page or truncated path
+                    // Deck behavior: on mobile, often just shows current page or truncated path
                     // We'll show an ellipsis for middle items if there are more than 2 breadcrumbs on mobile
                     const shouldShowOnMobile = isLast || (breadcrumbs.length <= 2 && isFirst);
 

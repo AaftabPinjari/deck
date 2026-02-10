@@ -134,9 +134,9 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
     return (
         <div
             id={`block-${block.id}`}
-            className={cn("group flex items-start gap-2 py-1 -ml-8 pl-8 relative rounded", className)}
+            className={cn("group flex items-start gap-1 md:gap-2 py-1 relative rounded", className)}
             style={{
-                paddingLeft: `${2 + (level * 1.5)}rem`,
+                paddingLeft: `calc(${level * 1.5}rem + 1.25rem)`, // Initial indentation for all
                 color: textColor || undefined,
                 backgroundColor: bgColor || undefined,
             }}
@@ -145,8 +145,8 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
             {!readOnly && (
                 <div
                     ref={dragHandleRef}
-                    className="absolute top-1.5 p-0.5 rounded opacity-0 group-hover:opacity-100 cursor-grab hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400"
-                    style={{ left: `${(level * 1.5)}rem` }}
+                    className="absolute top-1 p-1 rounded opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 cursor-grab hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 touch-none transition-opacity z-10"
+                    style={{ left: `${level * 1.5}rem` }} // Position based on level
                     contentEditable={false}
                     onMouseDown={(e) => {
                         (e.currentTarget as any)._startX = e.clientX;
@@ -212,7 +212,7 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
             )}
 
             {/* Prefix rendering based on type */}
-            <div className="select-none flex-shrink-0 w-6 flex justify-end" contentEditable={false}>
+            <div className="select-none flex-shrink-0 w-5 md:w-6 flex justify-end" contentEditable={false}>
                 {block.type === 'bullet' && (
                     <span className="text-xl leading-snug">•</span>
                 )}

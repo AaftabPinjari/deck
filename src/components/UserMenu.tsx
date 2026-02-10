@@ -48,7 +48,7 @@ export function UserMenu() {
                     {initial}
                 </div>
                 <span className="text-sm font-medium truncate flex-1 text-left">
-                    {displayName}'s Notion
+                    {displayName}'s Deck
                 </span>
                 <ChevronsUpDown className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />
             </div>
@@ -66,7 +66,7 @@ export function UserMenu() {
                             <div className="h-5 w-5 bg-neutral-200 dark:bg-neutral-700 rounded flex items-center justify-center text-xs font-medium">
                                 {initial}
                             </div>
-                            <span className="truncate">{displayName}'s Notion</span>
+                            <span className="truncate">{displayName}'s Deck</span>
                         </div>
                         <Check className="h-3 w-3 text-neutral-700 dark:text-neutral-300" />
                     </div>

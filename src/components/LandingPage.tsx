@@ -8,9 +8,9 @@ export function LandingPage() {
             <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-neutral-100 h-16 flex items-center justify-between px-4 md:px-6 max-w-7xl mx-auto w-full">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                        N
+                        D
                     </div>
-                    <span className="font-semibold text-lg tracking-tight">Notion Clone</span>
+                    <span className="font-semibold text-lg tracking-tight">Deck</span>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -24,7 +24,7 @@ export function LandingPage() {
                         to="/signup"
                         className="text-sm font-medium bg-neutral-900 text-white px-4 py-2 rounded-md hover:bg-neutral-800 transition-colors flex items-center gap-2"
                     >
-                        Get Notion free
+                        Get Deck free
                         <ArrowRight className="h-4 w-4" />
                     </Link>
                 </div>
@@ -36,7 +36,7 @@ export function LandingPage() {
                     Your wiki, docs, & projects. Together.
                 </h1>
                 <p className="text-xl md:text-2xl text-neutral-500 mb-8 max-w-2xl leading-relaxed">
-                    Notion is the connected workspace where better, faster work happens.
+                    Deck is the connected workspace where better, faster work happens.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center gap-4 mb-16">
@@ -44,7 +44,7 @@ export function LandingPage() {
                         to="/signup"
                         className="px-6 py-3 bg-neutral-900 text-white font-medium rounded-lg hover:bg-neutral-800 transition-colors text-lg flex items-center gap-2"
                     >
-                        Get Notion free
+                        Get Deck free
                         <ArrowRight className="h-5 w-5" />
                     </Link>
                     {/* <Link
@@ -109,7 +109,7 @@ export function LandingPage() {
                     <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
                         <div className="flex items-center gap-2">
                             <div className="w-5 h-5 bg-neutral-200 rounded-md"></div>
-                            <span>Notion Clone © 2024</span>
+                            <span>Deck © 2026</span>
                         </div>
                         <div className="flex gap-6">
                             <a href="#" className="hover:text-neutral-600">Privacy</a>

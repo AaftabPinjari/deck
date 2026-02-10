@@ -11,7 +11,7 @@ export const DEFAULT_COVERS = [
     "linear-gradient(to right, #cc2b5e, #753a88)"  // Magenta Purple
 ];
 
-// Default Icons (Common Notion-style emojis)
+// Default Icons (Common Deck-style emojis)
 export const DEFAULT_ICONS = [
     "📄", "📝", "💡", "✨", "🚀", "🎨", "📚", "📌", "🎯", "⭐",
     "🌊", "🏔️", "🌅", "💻", "🧠", "🎒", "📅", "📊", "🔥", "💭"

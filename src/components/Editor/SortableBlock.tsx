@@ -37,7 +37,7 @@ export const SortableBlock = memo(function SortableBlock({ block, documentId, on
         opacity: isDragging ? 0.3 : 1,
         zIndex: isDragging ? 1000 : 1,
         position: 'relative' as const,
-        touchAction: 'none',
+        // touchAction: 'none', // Removed to allow scrolling on mobile
     };
 
     return (

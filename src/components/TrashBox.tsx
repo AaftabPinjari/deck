@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useDocumentStore } from '../store/useDocumentStore';
 import { Modal } from './ui/Modal';
 import { FileText, RefreshCw, Trash2, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 
 interface TrashBoxProps {
     isOpen: boolean;
@@ -10,7 +10,7 @@ interface TrashBoxProps {
 }
 
 export function TrashBox({ isOpen, onClose }: TrashBoxProps) {
-    const navigate = useNavigate();
+    // const navigate = useNavigate(); // Unused
     const { documents, restoreDocument, permanentlyDeleteDocument } = useDocumentStore();
     const [search, setSearch] = useState('');
 
@@ -40,7 +40,7 @@ export function TrashBox({ isOpen, onClose }: TrashBoxProps) {
                         placeholder="Search in trash..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-8 pr-4 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full pl-8 pr-4 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500 text-neutral-900 dark:text-neutral-100"
                     />
                 </div>
 
@@ -55,7 +55,7 @@ export function TrashBox({ isOpen, onClose }: TrashBoxProps) {
                             {filteredDocs.map((doc) => (
                                 <div
                                     key={doc.id}
-                                    className="flex items-center justify-between p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded group"
+                                    className="flex items-center justify-between p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded group text-neutral-900 dark:text-neutral-100"
                                 >
                                     <div className="flex items-center gap-2 overflow-hidden">
                                         <div className="flex items-center justify-center h-6 w-6 text-lg shrink-0">

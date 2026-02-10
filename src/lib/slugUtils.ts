@@ -1,12 +1,12 @@
 /**
- * Notion-style slug utilities.
+ * Deck-style slug utilities.
  * 
  * URL format: /Page-Title-<32-char-hex-id>
  * Example:    /Getting-Started-a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
  */
 
 /**
- * Convert a title and UUID into a Notion-style slug.
+ * Convert a title and UUID into a Deck-style slug.
  * "My Page" + "a1b2c3d4-e5f6-..." → "/My-Page-a1b2c3d4e5f6..."
  */
 export function toPageSlug(title: string, id: string): string {
@@ -26,7 +26,7 @@ export function toPageSlug(title: string, id: string): string {
 }
 
 /**
- * Extract the document UUID from a Notion-style slug.
+ * Extract the document UUID from a Deck-style slug.
  * Supports:
  *   - Slug format:  "My-Page-a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
  *   - Raw UUID:     "a1b2c3d4-e5f6-a7b8-c9d0-e1f2a3b4c5d6"

@@ -33,6 +33,8 @@ export function Editor() {
     const content = useDocumentStore(useCallback(state => documentId ? state.documents[documentId]?.content : undefined, [documentId]));
     const isFullWidth = useDocumentStore(useCallback(state => documentId ? state.documents[documentId]?.isFullWidth : undefined, [documentId]));
     const fontStyle = useDocumentStore(useCallback(state => documentId ? state.documents[documentId]?.fontStyle : undefined, [documentId]));
+    const isLocked = useDocumentStore(useCallback(state => documentId ? state.documents[documentId]?.isLocked : undefined, [documentId]));
+    const isSmallText = useDocumentStore(useCallback(state => documentId ? state.documents[documentId]?.isSmallText : undefined, [documentId]));
 
     // We need documents for the mention click handler
     const { moveBlock, updateBlock: updateBlockStore, addBlock: addBlockStore, deleteBlock: deleteBlockStore, duplicateBlock: duplicateBlockStore, isLoading, documents } = useDocumentStore();
@@ -486,12 +488,9 @@ export function Editor() {
         return blocks;
     }, [content]);
 
-    if (!documentId) return <div>Select a page</div>;
-    if (!documentId) return <div>Select a page</div>;
-    // content is undefined if doc not found or loading. 
-    // If isLoading is true, show skeleton.
+    if (!documentId) return <div className="flex-1 flex items-center justify-center text-neutral-500">Select a page to start editing</div>;
     if (isLoading && !content) return <EditorSkeleton />;
-    // If not loading and no content, then 404
+
     if (!content) return (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
             <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-2xl flex items-center justify-center mb-4 text-3xl">
@@ -510,10 +509,6 @@ export function Editor() {
         </div>
     );
 
-    if (!content) return <div>Page not found</div>;
-
-
-
     return (
         <div className={cn(
             "transition-all duration-300",
@@ -527,8 +522,8 @@ export function Editor() {
             {/* Content area with proper padding */}
             <div className={cn(
                 "mx-auto px-4 md:px-12 pb-32 transition-all duration-300",
-                isFullWidth ? "max-w-full px-6 md:px-24" : "max-w-3xl",
-                useDocumentStore.getState().documents[documentId!]?.isSmallText ? "text-sm" : "text-base"
+                isFullWidth ? "max-w-full px-4 md:px-24" : "max-w-3xl",
+                isSmallText ? "text-sm" : "text-base"
             )}>
 
                 <DndContext
@@ -544,70 +539,59 @@ export function Editor() {
                             className="flex flex-col pb-32 min-h-[50vh] cursor-text"
                             onClick={(e) => {
                                 // Prevent adding blocks if locked
-                                if (useDocumentStore.getState().documents[documentId!]?.isLocked) return;
+                                if (isLocked) return;
 
                                 // Handle mention clicks
                                 const target = e.target as HTMLElement;
                                 if (target.tagName === 'A' && target.getAttribute('data-mention') === 'true') {
                                     e.preventDefault();
                                     const href = target.getAttribute('href');
-                                    // Extract document ID from slug href
                                     const targetId = href ? extractIdFromSlug(href) : null;
 
-                                    // Verify document exists before navigating
                                     if (targetId && documents[targetId]) {
                                         navigate(toPageSlug(documents[targetId].title, targetId));
                                     } else {
-                                        // Optional: Show toast or feedback that page doesn't exist
                                         console.warn(`Page not found: ${targetId}`);
                                     }
                                     return;
                                 }
 
-                                // Only handle clicks directly on the container (empty space)
                                 if (target !== e.currentTarget) return;
 
-                                const content = getDoc()?.content;
+                                const doc = getDoc();
+                                const content = doc?.content;
                                 if (!content || content.length === 0) return;
 
                                 const lastBlock = content[content.length - 1];
 
-                                // If last block is empty text, focus it
                                 if (lastBlock.type === 'text' && !lastBlock.content) {
                                     const el = document.querySelector(`[data-block-id="${lastBlock.id}"]`) as HTMLElement;
                                     el?.focus();
                                 } else {
-                                    // Otherwise add new block at the end
                                     addBlock(lastBlock.id, 'text');
                                 }
                             }}
                         >
                             {(() => {
                                 const counts: Record<number, number> = {};
-                                const isLocked = useDocumentStore.getState().documents[documentId!]?.isLocked;
 
                                 return visibleBlocks.map((block, index) => {
                                     let blockIndex: number | undefined = undefined;
                                     const level = block.props?.level || 0;
 
                                     if (block.type === 'number') {
-                                        // Increment count for current level
                                         counts[level] = (counts[level] || 0) + 1;
                                         blockIndex = counts[level];
 
-                                        // Reset all deeper levels
                                         for (let l = level + 1; l < 10; l++) {
                                             counts[l] = 0;
                                         }
                                     } else {
-                                        // Non-number block: reset counts for this level and all deeper
-                                        // This ensures lists break when interrupted by other content at the same level
                                         for (let l = level; l < 10; l++) {
                                             counts[l] = 0;
                                         }
                                     }
 
-                                    // Determine visual grouping
                                     const isList = ['bullet', 'number', 'todo'].includes(block.type);
                                     const prevBlock = index > 0 ? visibleBlocks[index - 1] : null;
                                     const isGrouped = isList && prevBlock && prevBlock.type === block.type;
@@ -663,3 +647,4 @@ export function Editor() {
         </div>
     );
 }
+

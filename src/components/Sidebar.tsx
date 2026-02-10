@@ -24,7 +24,8 @@ import {
     DndContext,
     pointerWithin,
     KeyboardSensor,
-    PointerSensor,
+    MouseSensor,
+    TouchSensor,
     useSensor,
     useSensors,
     DragEndEvent,
@@ -33,8 +34,9 @@ import {
     defaultDropAnimationSideEffects,
     DropAnimation,
     DragOverEvent,
-    MeasuringStrategy
+    MeasuringStrategy,
 } from '@dnd-kit/core';
+import { restrictToWindowEdges } from '@dnd-kit/modifiers';
 import {
     SortableContext,
     sortableKeyboardCoordinates,
@@ -130,6 +132,12 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
                     isNesting && "bg-transparent hover:bg-transparent"
                 )}
                 style={{ paddingLeft: `${level * 16 + 8}px` }}
+                onContextMenu={(e) => {
+                    // Prevent context menu on mobile to allow long-press drag
+                    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                        e.preventDefault();
+                    }
+                }}
             >
                 {/* Chevron - always takes space, invisible if no children */}
                 <div
@@ -309,9 +317,15 @@ export function Sidebar() {
     const [dropState, setDropState] = useState<{ overId: string; position: DropPosition }>({ overId: '', position: null });
 
     const sensors = useSensors(
-        useSensor(PointerSensor, {
+        useSensor(MouseSensor, {
             activationConstraint: {
                 distance: 8,
+            },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 250,
+                tolerance: 5,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -511,7 +525,8 @@ export function Sidebar() {
                                 onDragStart={handleDragStart}
                                 onDragOver={handleDragOver}
                                 onDragEnd={handleDragEnd}
-                                measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+                                measuring={{ droppable: { strategy: MeasuringStrategy.WhileDragging } }}
+                                modifiers={[restrictToWindowEdges]}
                             >
                                 <DocumentList onDeleteLabel={setDocToDelete} dropState={dropState} />
                                 <DragOverlay dropAnimation={dropAnimation}>
