@@ -242,6 +242,8 @@ export const useDocumentStore = create<DocumentState>()(
                 const newDoc: Document = {
                     id: docId,
                     title,
+                    icon: template.icon,
+                    coverImage: getRandomCover(),
                     content: blocks,
                     children: [],
                     parentId,
