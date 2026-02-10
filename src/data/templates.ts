@@ -22,7 +22,7 @@ export const templates: Template[] = [
         id: 'meeting-notes',
         name: 'Meeting Notes',
         icon: '📝',
-        description: 'Capture meeting discussions and action items',
+        description: 'Capture your meeting discussions and action items',
         blocks: [
             { type: 'h2', content: '📅 Meeting Details' },
             { type: 'text', content: '**Date:** ' },
