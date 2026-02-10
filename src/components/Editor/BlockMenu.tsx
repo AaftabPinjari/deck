@@ -14,7 +14,8 @@ import {
     Code,
     Palette,
     Link,
-    ChevronRight
+    ChevronRight,
+    ChevronLeft
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { BlockType } from '../../store/useDocumentStore';
@@ -71,7 +72,17 @@ export function BlockMenu({ isOpen, onClose, anchorElement, onTurnInto, onDelete
     const menuRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
     const [hoveredItem, setHoveredItem] = useState<'none' | 'turnInto' | 'color'>('none');
+    const [activeView, setActiveView] = useState<'main' | 'turnInto' | 'color'>('main');
     const [copied, setCopied] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+    // Detect mobile to disable hover-menus and enable click-traversal
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.matchMedia('(max-width: 768px)').matches);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useLayoutEffect(() => {
         if (isOpen && anchorElement && menuRef.current) {
@@ -82,16 +93,19 @@ export function BlockMenu({ isOpen, onClose, anchorElement, onTurnInto, onDelete
             let left = rect.left + window.scrollX;
 
             // Flip if close to bottom
-            if (rect.bottom + menuRect.height > window.innerHeight) {
+            if (rect.bottom + menuRect.height > window.innerHeight + window.scrollY) {
                 top = rect.top + window.scrollY - menuRect.height - 5;
             }
 
-            // Ensure it doesn't go off-screen left
+            // Ensure it doesn't go off-screen left/right
             if (left < 10) left = 10;
+            if (left + menuRect.width > window.innerWidth) {
+                left = window.innerWidth - menuRect.width - 10;
+            }
 
             setPosition({ top, left });
         }
-    }, [isOpen, anchorElement]);
+    }, [isOpen, anchorElement, activeView]); // Re-calculate when view changes size
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -109,6 +123,7 @@ export function BlockMenu({ isOpen, onClose, anchorElement, onTurnInto, onDelete
     useEffect(() => {
         if (!isOpen) {
             setHoveredItem('none');
+            setActiveView('main');
             setCopied(false);
         }
     }, [isOpen]);
@@ -125,149 +140,249 @@ export function BlockMenu({ isOpen, onClose, anchorElement, onTurnInto, onDelete
     return createPortal(
         <div ref={menuRef} className="fixed z-50" style={{ top: position.top, left: position.left }}>
             <div className="flex">
-                {/* Main Menu */}
-                <div className="w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm animate-in fade-in zoom-in-95 duration-150">
-                    <div className="flex flex-col p-1">
-                        <button
-                            type="button"
-                            className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-left"
-                            onClick={() => onDelete()}
-                            onMouseEnter={() => setHoveredItem('none')}
-                        >
-                            <Trash className="w-4 h-4 text-neutral-500" />
-                            <span>Delete</span>
-                        </button>
-                        <button
-                            type="button"
-                            className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-left"
-                            onClick={() => onDuplicate()}
-                            onMouseEnter={() => setHoveredItem('none')}
-                        >
-                            <Copy className="w-4 h-4 text-neutral-500" />
-                            <span>Duplicate</span>
-                        </button>
+                {/* Main Content Container - Dynamic Content based on Active View */}
+                <div className="w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm animate-in fade-in zoom-in-95 duration-150 flex flex-col">
 
-                        <div className="h-px bg-neutral-200 dark:bg-neutral-700 my-1" />
+                    {/* VIEW: MAIN */}
+                    {activeView === 'main' && (
+                        <div className="flex flex-col p-1">
+                            <button
+                                type="button"
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-left"
+                                onClick={() => onDelete()}
+                                onMouseEnter={() => setHoveredItem('none')}
+                            >
+                                <Trash className="w-4 h-4 text-neutral-500" />
+                                <span>Delete</span>
+                            </button>
+                            <button
+                                type="button"
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-left"
+                                onClick={() => onDuplicate()}
+                                onMouseEnter={() => setHoveredItem('none')}
+                            >
+                                <Copy className="w-4 h-4 text-neutral-500" />
+                                <span>Duplicate</span>
+                            </button>
 
-                        {/* Turn Into - with hover submenu */}
-                        <div
-                            className={cn(
-                                "flex items-center gap-3 px-3 py-2 rounded text-left justify-between cursor-pointer",
-                                hoveredItem === 'turnInto' ? "bg-neutral-100 dark:bg-neutral-700" : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
-                            )}
-                            onMouseEnter={() => setHoveredItem('turnInto')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Type className="w-4 h-4 text-neutral-500" />
-                                <span>Turn into</span>
+                            <div className="h-px bg-neutral-200 dark:bg-neutral-700 my-1" />
+
+                            {/* Turn Into */}
+                            <div
+                                className={cn(
+                                    "flex items-center gap-3 px-3 py-2 rounded text-left justify-between cursor-pointer",
+                                    hoveredItem === 'turnInto' ? "bg-neutral-100 dark:bg-neutral-700" : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                                )}
+                                onMouseEnter={() => !isMobile && setHoveredItem('turnInto')}
+                                onClick={() => setActiveView('turnInto')}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Type className="w-4 h-4 text-neutral-500" />
+                                    <span>Turn into</span>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-neutral-400" />
                             </div>
-                            <ChevronRight className="w-4 h-4 text-neutral-400" />
-                        </div>
 
-                        {/* Color - with hover submenu */}
-                        <div
-                            className={cn(
-                                "flex items-center gap-3 px-3 py-2 rounded text-left justify-between cursor-pointer",
-                                hoveredItem === 'color' ? "bg-neutral-100 dark:bg-neutral-700" : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
-                            )}
-                            onMouseEnter={() => setHoveredItem('color')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Palette className="w-4 h-4 text-neutral-500" />
-                                <span>Color</span>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-neutral-400" />
-                        </div>
-
-                        <div className="h-px bg-neutral-200 dark:bg-neutral-700 my-1" />
-
-                        <button
-                            type="button"
-                            className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-left"
-                            onClick={handleCopyLink}
-                            onMouseEnter={() => setHoveredItem('none')}
-                        >
-                            <Link className="w-4 h-4 text-neutral-500" />
-                            <span>{copied ? 'Copied!' : 'Copy link to block'}</span>
-                        </button>
-                    </div>
-                </div>
-
-                {/* Turn Into Submenu */}
-                {hoveredItem === 'turnInto' && (
-                    <div
-                        className="w-52 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm ml-1 animate-in fade-in slide-in-from-left-2 duration-100"
-                        onMouseEnter={() => setHoveredItem('turnInto')}
-                    >
-                        <div className="flex flex-col p-1 max-h-[300px] overflow-y-auto">
-                            {TURN_INTO_OPTIONS.map(opt => (
-                                <button
-                                    key={opt.type}
-                                    type="button"
-                                    className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-left w-full"
-                                    onClick={() => {
-                                        onTurnInto(opt.type as BlockType);
-                                        onClose();
-                                    }}
-                                >
-                                    <opt.icon className="w-4 h-4 text-neutral-500" />
-                                    <span>{opt.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Color Submenu */}
-                {hoveredItem === 'color' && (
-                    <div
-                        className="w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm ml-1 animate-in fade-in slide-in-from-left-2 duration-100"
-                        onMouseEnter={() => setHoveredItem('color')}
-                    >
-                        <div className="flex flex-col p-2">
-                            <div className="px-2 py-1 text-xs font-medium text-neutral-500 uppercase">Text Color</div>
-                            <div className="flex flex-wrap gap-1.5 px-2 py-2">
-                                {TEXT_COLORS.map(c => (
-                                    <button
-                                        key={c.label}
-                                        type="button"
-                                        title={c.label}
-                                        className={cn(
-                                            "w-6 h-6 rounded-full hover:ring-2 hover:ring-blue-500 hover:ring-offset-1 transition-all",
-                                            c.className
-                                        )}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onColor(c.color, null);
-                                            onClose();
-                                        }}
-                                    />
-                                ))}
+                            {/* Color */}
+                            <div
+                                className={cn(
+                                    "flex items-center gap-3 px-3 py-2 rounded text-left justify-between cursor-pointer",
+                                    hoveredItem === 'color' ? "bg-neutral-100 dark:bg-neutral-700" : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                                )}
+                                onMouseEnter={() => !isMobile && setHoveredItem('color')}
+                                onClick={() => setActiveView('color')}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Palette className="w-4 h-4 text-neutral-500" />
+                                    <span>Color</span>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-neutral-400" />
                             </div>
 
                             <div className="h-px bg-neutral-200 dark:bg-neutral-700 my-1" />
 
-                            <div className="px-2 py-1 text-xs font-medium text-neutral-500 uppercase">Background</div>
-                            <div className="flex flex-wrap gap-1.5 px-2 py-2">
-                                {BG_COLORS.map(c => (
+                            <button
+                                type="button"
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-left"
+                                onClick={handleCopyLink}
+                                onMouseEnter={() => setHoveredItem('none')}
+                            >
+                                <Link className="w-4 h-4 text-neutral-500" />
+                                <span>{copied ? 'Copied!' : 'Copy link to block'}</span>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* VIEW: TURN INTO */}
+                    {activeView === 'turnInto' && (
+                        <div className="flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+                            <div className="flex items-center gap-2 p-2 px-3 border-b border-neutral-200 dark:border-neutral-700">
+                                <button
+                                    onClick={() => setActiveView('main')}
+                                    className="p-1 -ml-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded"
+                                >
+                                    <ChevronLeft className="w-4 h-4 text-neutral-500" />
+                                </button>
+                                <span className="text-sm font-medium text-neutral-500">Turn into</span>
+                            </div>
+                            <div className="flex flex-col p-1 overflow-y-auto max-h-[300px]">
+                                {TURN_INTO_OPTIONS.map(opt => (
                                     <button
-                                        key={c.label}
+                                        key={opt.type}
                                         type="button"
-                                        title={c.label}
-                                        className={cn(
-                                            "w-6 h-6 rounded hover:ring-2 hover:ring-blue-500 hover:ring-offset-1 transition-all",
-                                            c.className
-                                        )}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onColor(null, c.color);
+                                        className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-left w-full"
+                                        onClick={() => {
+                                            onTurnInto(opt.type as BlockType);
                                             onClose();
                                         }}
-                                    />
+                                    >
+                                        <opt.icon className="w-4 h-4 text-neutral-500" />
+                                        <span>{opt.label}</span>
+                                    </button>
                                 ))}
                             </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* VIEW: COLOR */}
+                    {activeView === 'color' && (
+                        <div className="flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+                            <div className="flex items-center gap-2 p-2 px-3 border-b border-neutral-200 dark:border-neutral-700">
+                                <button
+                                    onClick={() => setActiveView('main')}
+                                    className="p-1 -ml-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded"
+                                >
+                                    <ChevronLeft className="w-4 h-4 text-neutral-500" />
+                                </button>
+                                <span className="text-sm font-medium text-neutral-500">Color</span>
+                            </div>
+                            <div className="flex flex-col p-2 overflow-y-auto max-h-[300px]">
+                                <div className="px-2 py-1 text-xs font-medium text-neutral-500 uppercase">Text Color</div>
+                                <div className="flex flex-wrap gap-1.5 px-2 py-2">
+                                    {TEXT_COLORS.map(c => (
+                                        <button
+                                            key={c.label}
+                                            type="button"
+                                            title={c.label}
+                                            className={cn(
+                                                "w-6 h-6 rounded-full hover:ring-2 hover:ring-blue-500 hover:ring-offset-1 transition-all",
+                                                c.className
+                                            )}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onColor(c.color, null);
+                                                onClose();
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+
+                                <div className="h-px bg-neutral-200 dark:bg-neutral-700 my-1" />
+
+                                <div className="px-2 py-1 text-xs font-medium text-neutral-500 uppercase">Background</div>
+                                <div className="flex flex-wrap gap-1.5 px-2 py-2">
+                                    {BG_COLORS.map(c => (
+                                        <button
+                                            key={c.label}
+                                            type="button"
+                                            title={c.label}
+                                            className={cn(
+                                                "w-6 h-6 rounded hover:ring-2 hover:ring-blue-500 hover:ring-offset-1 transition-all",
+                                                c.className
+                                            )}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onColor(null, c.color);
+                                                onClose();
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* DESKTOP HOVER MENUS (Only render if NOT activeView replacement and NOT mobile) */}
+                {!isMobile && activeView === 'main' && (
+                    <>
+                        {/* Turn Into Submenu (Desktop Floater) */}
+                        {hoveredItem === 'turnInto' && (
+                            <div
+                                className="w-52 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm ml-1 animate-in fade-in slide-in-from-left-2 duration-100 absolute left-full top-0"
+                                onMouseEnter={() => setHoveredItem('turnInto')}
+                            >
+                                <div className="flex flex-col p-1 max-h-[300px] overflow-y-auto">
+                                    {TURN_INTO_OPTIONS.map(opt => (
+                                        <button
+                                            key={opt.type}
+                                            type="button"
+                                            className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-left w-full"
+                                            onClick={() => {
+                                                onTurnInto(opt.type as BlockType);
+                                                onClose();
+                                            }}
+                                        >
+                                            <opt.icon className="w-4 h-4 text-neutral-500" />
+                                            <span>{opt.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Color Submenu (Desktop Floater) */}
+                        {hoveredItem === 'color' && (
+                            <div
+                                className="w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm ml-1 animate-in fade-in slide-in-from-left-2 duration-100 absolute left-full top-0"
+                                onMouseEnter={() => setHoveredItem('color')}
+                            >
+                                <div className="flex flex-col p-2">
+                                    <div className="px-2 py-1 text-xs font-medium text-neutral-500 uppercase">Text Color</div>
+                                    <div className="flex flex-wrap gap-1.5 px-2 py-2">
+                                        {TEXT_COLORS.map(c => (
+                                            <button
+                                                key={c.label}
+                                                type="button"
+                                                title={c.label}
+                                                className={cn(
+                                                    "w-6 h-6 rounded-full hover:ring-2 hover:ring-blue-500 hover:ring-offset-1 transition-all",
+                                                    c.className
+                                                )}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onColor(c.color, null);
+                                                    onClose();
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+
+                                    <div className="h-px bg-neutral-200 dark:bg-neutral-700 my-1" />
+
+                                    <div className="px-2 py-1 text-xs font-medium text-neutral-500 uppercase">Background</div>
+                                    <div className="flex flex-wrap gap-1.5 px-2 py-2">
+                                        {BG_COLORS.map(c => (
+                                            <button
+                                                key={c.label}
+                                                type="button"
+                                                title={c.label}
+                                                className={cn(
+                                                    "w-6 h-6 rounded hover:ring-2 hover:ring-blue-500 hover:ring-offset-1 transition-all",
+                                                    c.className
+                                                )}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onColor(null, c.color);
+                                                    onClose();
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>,

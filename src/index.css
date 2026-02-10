@@ -68,3 +68,20 @@
 .dark :hover {
     scrollbar-color: #404040 transparent;
 }
+
+/* Emoji Picker Overrides */
+.EmojiPickerReact .epr-search-container input.epr-search-input {
+    font-size: 14px !important;
+    line-height: normal !important;
+    padding: 8px 12px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    border-radius: 8px !important;
+    margin-bottom: 0px !important;
+}
+
+.EmojiPickerReact .epr-search-container {
+    padding: 8px !important;
+}
+
+
