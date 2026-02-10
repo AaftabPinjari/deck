@@ -1,10 +1,11 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { MoreHorizontal, Copy, Trash, Download } from 'lucide-react';
 import { useDocumentStore } from '../store/useDocumentStore';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { Modal } from './ui/Modal';
+import { blocksToMarkdown, downloadMarkdown } from '../utils/markdownUtils';
+import { toast } from 'sonner';
 
 interface MoreMenuProps {
     documentId: string;
@@ -119,6 +120,18 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
                     {/* Actions */}
                     <div className="py-1">
                         <button
+                            onClick={async () => {
+                                const markdown = blocksToMarkdown(currentDoc.content);
+                                await navigator.clipboard.writeText(markdown);
+                                toast.success("Copied to clipboard");
+                                setIsOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-1.5 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
+                        >
+                            <Copy className="h-4 w-4" />
+                            Copy as Markdown
+                        </button>
+                        <button
                             onClick={handleDuplicate}
                             className="w-full text-left px-3 py-1.5 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
                         >
@@ -134,30 +147,10 @@ export function MoreMenu({ documentId }: MoreMenuProps) {
                         </button>
                         <button
                             onClick={() => {
-                                const content = currentDoc.content.map(b => {
-                                    if (b.type === 'text') return b.content;
-                                    if (b.type === 'h1') return `# ${b.content}`;
-                                    if (b.type === 'h2') return `## ${b.content}`;
-                                    if (b.type === 'h3') return `### ${b.content}`;
-                                    if (b.type === 'bullet') return `- ${b.content}`;
-                                    if (b.type === 'number') return `1. ${b.content}`;
-                                    if (b.type === 'todo') return `- [ ] ${b.content}`;
-                                    if (b.type === 'quote') return `> ${b.content}`;
-                                    if (b.type === 'code') return `\`\`\`\n${b.content}\n\`\`\``;
-                                    if (b.type === 'divider') return `---`;
-                                    return b.content;
-                                }).join('\n\n');
-
-                                const blob = new Blob([content], { type: 'text/markdown' });
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `${currentDoc.title || 'Untitled'}.md`;
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
-                                URL.revokeObjectURL(url);
+                                const markdown = blocksToMarkdown(currentDoc.content);
+                                downloadMarkdown(markdown, currentDoc.title || 'Untitled');
                                 setIsOpen(false);
+                                toast.success("Exported to Markdown");
                             }}
                             className="w-full text-left px-3 py-1.5 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
                         >

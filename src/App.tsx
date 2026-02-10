@@ -14,6 +14,7 @@ const Editor = lazy(() => import('./components/Editor/Editor').then(m => ({ defa
 const LandingPage = lazy(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage })));
 const Login = lazy(() => import('./components/Auth/Login').then(m => ({ default: m.Login })));
 const Signup = lazy(() => import('./components/Auth/Signup').then(m => ({ default: m.Signup })));
+import { Toaster } from 'sonner';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -89,6 +90,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position="bottom-center" />
       <SearchCommand />
       <Routes>
         <Route path="/login" element={<Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}><Login /></Suspense>} />
