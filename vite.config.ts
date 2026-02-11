@@ -16,7 +16,7 @@ export default defineConfig({
           // Supabase
           'vendor-supabase': ['@supabase/supabase-js'],
           // Drag & Drop (used by Editor + Sidebar)
-          'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities', '@dnd-kit/modifiers'],
+          'vendor-dnd': ['@hello-pangea/dnd'],
           // Syntax highlighting (only used by CodeBlock)
           'vendor-prism': ['prismjs'],
           // Emoji picker (very heavy ~400KB, only used when picking icons)
