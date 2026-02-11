@@ -134,35 +134,52 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
     return (
         <div
             id={`block-${block.id}`}
-            className={cn("group flex items-start gap-1 md:gap-2 py-1 relative rounded", className)}
+            className={cn(
+                "group flex items-start gap-1 md:gap-2 py-1 relative rounded",
+                "[--base-gutter:0.75rem] md:[--base-gutter:1.25rem]", // CSS var for responsive gutter
+                "[--handle-offset:-1.25rem] md:[--handle-offset:-1.75rem]", // Offset for drag handle
+                className
+            )}
             style={{
-                paddingLeft: `calc(${level * 1.5}rem + 1.25rem)`, // Initial indentation for all
+                paddingLeft: `calc(${level * 1.5}rem + var(--base-gutter))`,
                 color: textColor || undefined,
                 backgroundColor: bgColor || undefined,
             }}
         >
-            {/* Drag Handle - Hidden in Read Only */}
+            {/* Drag Handle - Desktop & Mobile */}
             {!readOnly && (
                 <div
                     ref={dragHandleRef}
-                    className="absolute top-1 p-1 rounded opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 cursor-grab hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 touch-none transition-opacity z-10"
-                    style={{ left: `${level * 1.5}rem` }} // Position based on level
+                    className="block absolute top-1 p-1 rounded opacity-0 group-focus-within:opacity-100 md:group-hover:opacity-100 cursor-grab hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 touch-none transition-opacity z-10"
+                    style={{ left: `calc(${level * 1.5}rem + var(--handle-offset))` }} // Position based on level and offset
                     contentEditable={false}
+                    {...dragHandleProps}
                     onMouseDown={(e) => {
+                        e.stopPropagation();
+                        dragHandleProps?.onMouseDown?.(e);
                         (e.currentTarget as any)._startX = e.clientX;
                         (e.currentTarget as any)._startY = e.clientY;
                     }}
                     onMouseUp={(e) => {
+                        dragHandleProps?.onMouseUp?.(e);
                         const startX = (e.currentTarget as any)._startX;
                         const startY = (e.currentTarget as any)._startY;
                         const dx = Math.abs(e.clientX - startX);
                         const dy = Math.abs(e.clientY - startY);
                         if (dx < 5 && dy < 5) {
+                            e.preventDefault();
                             e.stopPropagation();
+                            // Blur active element to dismiss keyboard on mobile
+                            if (document.activeElement instanceof HTMLElement) {
+                                document.activeElement.blur();
+                            }
                             setMenuOpen(true);
                         }
                     }}
-                    {...dragHandleProps}
+                    onTouchStart={(e) => {
+                        e.stopPropagation();
+                        dragHandleProps?.onTouchStart?.(e);
+                    }}
                 >
                     <GripVertical className="w-4 h-4" />
                 </div>

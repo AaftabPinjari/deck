@@ -166,7 +166,7 @@ export const useDocumentStore = create<DocumentState>()(
                     id,
                     title: 'Untitled',
                     icon: getRandomIcon(),
-                    coverImage: getRandomCover(),
+                    coverImage: undefined, // No default cover image
                     content: [{ id: blockId, type: 'text', content: '' }],
                     children: [],
                     parentId,
@@ -254,7 +254,7 @@ export const useDocumentStore = create<DocumentState>()(
                     id: docId,
                     title,
                     icon: template.icon,
-                    coverImage: getRandomCover(),
+                    coverImage: undefined, // No default cover image
                     content: blocks,
                     children: [],
                     parentId,
