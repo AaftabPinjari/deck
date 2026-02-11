@@ -20,7 +20,7 @@ export function Signup() {
             setError(error.message);
             setLoading(false);
         } else {
-            navigate('/');
+            navigate('/login?signup=success');
         }
     };
 

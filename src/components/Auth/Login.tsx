@@ -1,14 +1,27 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { auth } from '../../services/auth';
 import { Loader2 } from 'lucide-react';
+import { SelfClosingAlert } from '../ui/SelfClosingAlert';
 
 export function Login() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [showSignupSuccess, setShowSignupSuccess] = useState(false);
+    const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
+
+    useEffect(() => {
+        if (searchParams.get('signup') === 'success') {
+            setShowSignupSuccess(true);
+        }
+        if (searchParams.get('verified') === 'true') {
+            setShowVerificationSuccess(true);
+        }
+    }, [searchParams]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -72,6 +85,22 @@ export function Login() {
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Continue'}
                     </button>
                 </form>
+
+                {showSignupSuccess && (
+                    <SelfClosingAlert
+                        message="Please check your email inbox to confirm your account before logging in."
+                        onClose={() => setShowSignupSuccess(false)}
+                        className="mt-4 w-full"
+                    />
+                )}
+
+                {showVerificationSuccess && (
+                    <SelfClosingAlert
+                        message="Your email has been verified successfully. You can now log in with your credentials."
+                        onClose={() => setShowVerificationSuccess(false)}
+                        className="mt-4 w-full"
+                    />
+                )}
 
                 <div className="mt-8 text-neutral-500 text-xs">
                     Don't have an account?{' '}
