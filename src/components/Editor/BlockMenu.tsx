@@ -18,7 +18,7 @@ import {
     ChevronLeft
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { BlockType } from '../../store/useDocumentStore';
+import { type BlockType } from '../../store/useDocumentStore';
 
 interface BlockMenuProps {
     isOpen: boolean;
@@ -136,6 +136,220 @@ export function BlockMenu({ isOpen, onClose, anchorElement, onTurnInto, onDelete
     };
 
     if (!isOpen) return null;
+
+    const [sheetOffset, setSheetOffset] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const touchStart = useRef<number>(0);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        // Only allow dragging from the top handle area or if content is scrolled to top
+        // For simplicity, let's allow dragging from header/handle
+        touchStart.current = e.touches[0].clientY;
+        setIsDragging(true);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!isDragging) return;
+        const currentY = e.touches[0].clientY;
+        const diff = currentY - touchStart.current;
+        if (diff > 0) {
+            setSheetOffset(diff);
+        }
+    };
+
+    const handleTouchEnd = () => {
+        setIsDragging(false);
+        if (sheetOffset > 100) {
+            onClose();
+        } else {
+            setSheetOffset(0); // Snap back
+        }
+    };
+
+    if (isMobile) {
+        return createPortal(
+            <>
+                {/* Mobile Backdrop */}
+                <div
+                    className={cn(
+                        "fixed inset-0 bg-black/40 z-[9998] transition-opacity duration-300",
+                        isOpen ? "opacity-100" : "opacity-0"
+                    )}
+                    onClick={onClose}
+                />
+                {/* Mobile Bottom Sheet */}
+                <div
+                    className={cn(
+                        "fixed inset-x-0 bottom-0 z-[9999] bg-white dark:bg-neutral-900 rounded-t-xl shadow-2xl border-t border-neutral-200 dark:border-neutral-800 overflow-hidden text-neutral-900 dark:text-neutral-100 pb-safe transition-transform duration-200 ease-out",
+                        // Only animate slide-in if not moving manually
+                        !isDragging && "animate-in slide-in-from-bottom"
+                    )}
+                    style={{
+                        transform: `translateY(${sheetOffset}px)`,
+                        transition: isDragging ? 'none' : undefined
+                    }}
+                >
+                    {/* Handle Bar - Draggable Zone */}
+                    <div
+                        className="w-full flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none"
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                    >
+                        <div className="w-12 h-1.5 bg-neutral-300 dark:bg-neutral-700 rounded-full" />
+                    </div>
+
+                    <div className="max-h-[80vh] overflow-y-auto overscroll-contain">
+                        {/* VIEW: MAIN */}
+                        {activeView === 'main' && (
+                            <div className="flex flex-col p-2 pb-8">
+                                <button
+                                    type="button"
+                                    className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl text-left text-base"
+                                    onClick={() => onDelete()}
+                                >
+                                    <Trash className="w-5 h-5 text-neutral-500" />
+                                    <span>Delete</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl text-left text-base"
+                                    onClick={() => onDuplicate()}
+                                >
+                                    <Copy className="w-5 h-5 text-neutral-500" />
+                                    <span>Duplicate</span>
+                                </button>
+
+                                <div className="h-px bg-neutral-200 dark:bg-neutral-800 my-2" />
+
+                                <div
+                                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-left justify-between hover:bg-neutral-100 dark:hover:bg-neutral-800 text-base"
+                                    onClick={() => setActiveView('turnInto')}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Type className="w-5 h-5 text-neutral-500" />
+                                        <span>Turn into</span>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-neutral-400" />
+                                </div>
+
+                                <div
+                                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-left justify-between hover:bg-neutral-100 dark:hover:bg-neutral-800 text-base"
+                                    onClick={() => setActiveView('color')}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Palette className="w-5 h-5 text-neutral-500" />
+                                        <span>Color</span>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-neutral-400" />
+                                </div>
+
+                                <div className="h-px bg-neutral-200 dark:bg-neutral-800 my-2" />
+
+                                <button
+                                    type="button"
+                                    className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl text-left text-base"
+                                    onClick={handleCopyLink}
+                                >
+                                    <Link className="w-5 h-5 text-neutral-500" />
+                                    <span>{copied ? 'Copied!' : 'Copy link to block'}</span>
+                                </button>
+                            </div>
+                        )}
+
+                        {/* VIEW: TURN INTO */}
+                        {activeView === 'turnInto' && (
+                            <div className="flex flex-col h-full animate-in slide-in-from-right-10 duration-200 pb-8">
+                                <div className="flex items-center gap-2 p-4 border-b border-neutral-200 dark:border-neutral-800 sticky top-0 bg-white dark:bg-neutral-900 z-10">
+                                    <button
+                                        onClick={() => setActiveView('main')}
+                                        className="p-1 -ml-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full"
+                                    >
+                                        <ChevronLeft className="w-6 h-6 text-neutral-500" />
+                                    </button>
+                                    <span className="text-lg font-semibold">Turn into</span>
+                                </div>
+                                <div className="flex flex-col p-2">
+                                    {TURN_INTO_OPTIONS.map(opt => (
+                                        <button
+                                            key={opt.type}
+                                            type="button"
+                                            className="flex items-center gap-4 px-4 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl text-left w-full text-base"
+                                            onClick={() => {
+                                                onTurnInto(opt.type as BlockType);
+                                                onClose();
+                                            }}
+                                        >
+                                            <opt.icon className="w-5 h-5 text-neutral-500" />
+                                            <span>{opt.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* VIEW: COLOR */}
+                        {activeView === 'color' && (
+                            <div className="flex flex-col h-full animate-in slide-in-from-right-10 duration-200 pb-8">
+                                <div className="flex items-center gap-2 p-4 border-b border-neutral-200 dark:border-neutral-800 sticky top-0 bg-white dark:bg-neutral-900 z-10">
+                                    <button
+                                        onClick={() => setActiveView('main')}
+                                        className="p-1 -ml-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full"
+                                    >
+                                        <ChevronLeft className="w-6 h-6 text-neutral-500" />
+                                    </button>
+                                    <span className="text-lg font-semibold">Color</span>
+                                </div>
+                                <div className="flex flex-col p-4 gap-4">
+                                    <div>
+                                        <div className="text-xs font-semibold text-neutral-500 uppercase mb-2">Text Color</div>
+                                        <div className="flex flex-wrap gap-3">
+                                            {TEXT_COLORS.map(c => (
+                                                <button
+                                                    key={c.label}
+                                                    type="button"
+                                                    title={c.label}
+                                                    className={cn(
+                                                        "w-10 h-10 rounded-full ring-1 ring-neutral-200 dark:ring-neutral-700 flex items-center justify-center transition-all",
+                                                        c.className
+                                                    )}
+                                                    onClick={() => {
+                                                        onColor(c.color, null);
+                                                        onClose();
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-semibold text-neutral-500 uppercase mb-2">Background</div>
+                                        <div className="flex flex-wrap gap-3">
+                                            {BG_COLORS.map(c => (
+                                                <button
+                                                    key={c.label}
+                                                    type="button"
+                                                    title={c.label}
+                                                    className={cn(
+                                                        "w-10 h-10 rounded-lg ring-1 ring-neutral-200 dark:ring-neutral-700 flex items-center justify-center transition-all",
+                                                        c.className
+                                                    )}
+                                                    onClick={() => {
+                                                        onColor(null, c.color);
+                                                        onClose();
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </>,
+            document.body
+        );
+    }
 
     return createPortal(
         <div ref={menuRef} className="fixed z-50" style={{ top: position.top, left: position.left }}>
@@ -309,7 +523,7 @@ export function BlockMenu({ isOpen, onClose, anchorElement, onTurnInto, onDelete
                         {/* Turn Into Submenu (Desktop Floater) */}
                         {hoveredItem === 'turnInto' && (
                             <div
-                                className="w-52 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm ml-1 animate-in fade-in slide-in-from-left-2 duration-100 absolute left-full top-0"
+                                className="w-52 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm ml-1 animate-in fade-in slide-in-from-left-2 duration-100 absolute left-full top-0 text-neutral-900 dark:text-neutral-100"
                                 onMouseEnter={() => setHoveredItem('turnInto')}
                             >
                                 <div className="flex flex-col p-1 max-h-[300px] overflow-y-auto">
@@ -334,7 +548,7 @@ export function BlockMenu({ isOpen, onClose, anchorElement, onTurnInto, onDelete
                         {/* Color Submenu (Desktop Floater) */}
                         {hoveredItem === 'color' && (
                             <div
-                                className="w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm ml-1 animate-in fade-in slide-in-from-left-2 duration-100 absolute left-full top-0"
+                                className="w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm ml-1 animate-in fade-in slide-in-from-left-2 duration-100 absolute left-full top-0 text-neutral-900 dark:text-neutral-100"
                                 onMouseEnter={() => setHoveredItem('color')}
                             >
                                 <div className="flex flex-col p-2">
