@@ -41,9 +41,6 @@ export function Breadcrumbs() {
                     <Menu className="h-5 w-5 text-neutral-500" />
                 </button>
 
-                <div className="hidden md:flex items-center hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded px-1 py-0.5 transition-colors shrink-0">
-                    <span className="text-xs">Workspace</span>
-                </div>
 
                 {breadcrumbs.map((doc, index) => {
                     const isLast = index === breadcrumbs.length - 1;
@@ -58,7 +55,6 @@ export function Breadcrumbs() {
                             "flex items-center gap-1 min-w-0 shrink-0 md:shrink",
                             !shouldShowOnMobile && "hidden md:flex"
                         )}>
-                            {(isFirst && !shouldShowOnMobile) && <ChevronRight className="hidden md:block h-3 w-3 text-neutral-500 dark:text-neutral-400" />}
                             {!isFirst && <ChevronRight className="h-3 w-3 text-neutral-500 dark:text-neutral-400 shrink-0" />}
 
                             <Link
@@ -75,10 +71,8 @@ export function Breadcrumbs() {
                     );
                 })}
             </div>
-            <div className="flex items-center gap-1 md:gap-2 shrink-0 ml-2">
-                <div className="scale-75 md:scale-100 origin-right">
-                    <Publish documentId={documentId} />
-                </div>
+            <div className="flex items-center gap-1 shrink-0 ml-2">
+                <Publish documentId={documentId} />
                 <MoreMenu documentId={documentId} />
             </div>
         </div>

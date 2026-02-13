@@ -6,7 +6,7 @@ import { auth } from '../services/auth';
 import { getTemplateById } from '../data/templates';
 import { getRandomIcon } from '../lib/defaults';
 
-export type BlockType = 'text' | 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'todo' | 'quote' | 'divider' | 'image' | 'code' | 'callout' | 'video' | 'toggle' | 'table' | 'column_container' | 'bookmark' | 'kanban' | 'table_of_contents';
+export type BlockType = 'text' | 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'todo' | 'quote' | 'divider' | 'image' | 'code' | 'callout' | 'video' | 'toggle' | 'table' | 'column_container' | 'bookmark' | 'kanban' | 'table_of_contents' | 'breadcrumbs' | 'page';
 
 export interface Block {
     id: string;
@@ -41,6 +41,7 @@ interface DocumentState {
     rootDocumentIds: string[];
     isLoading: boolean;
     error: string | null;
+    currentUser: any | null;
 
     // Actions
     fetchDocuments: () => Promise<void>;
@@ -55,6 +56,7 @@ interface DocumentState {
     moveDocument: (id: string, newParentId: string | null, newIndex: number) => Promise<void>;
     duplicateDocument: (id: string) => Promise<string | null>;
     createDocumentFromTemplate: (templateId: string, parentId?: string | null) => Promise<string | null>;
+    fetchPublishedDocument: (id: string) => Promise<void>;
 
     // Block actions
     addBlock: (docId: string, block: Block, index: number) => Promise<void>;
@@ -74,10 +76,19 @@ export const useDocumentStore = create<DocumentState>()(
             rootDocumentIds: [],
             isLoading: false,
             error: null,
+            currentUser: null,
 
             fetchDocuments: async () => {
                 set({ isLoading: true, error: null });
                 try {
+                    // Fetch user once if not present
+                    let user = get().currentUser;
+                    if (!user) {
+                        const { data } = await auth.getUser();
+                        user = data.user;
+                        set({ currentUser: user });
+                    }
+
                     const { documents: remoteDocs, blocks: remoteBlocks } = await documentService.getDocuments();
 
                     // Reconstruct the state from flat Supabase tables
@@ -154,8 +165,63 @@ export const useDocumentStore = create<DocumentState>()(
                 }
             },
 
+            fetchPublishedDocument: async (id: string) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const { document: d, blocks: remoteBlocks } = await documentService.getPublishedDocument(id);
+
+                    if (!d) throw new Error("Document not found or not published");
+
+                    const doc: Document = {
+                        id: d.id,
+                        title: d.title || 'Untitled',
+                        icon: d.icon || undefined,
+                        coverImage: d.cover_image || undefined,
+                        content: [],
+                        children: [],
+                        parentId: d.parent_id,
+                        createdAt: new Date(d.created_at).getTime(),
+                        isExpanded: d.is_expanded ?? true,
+                        isFavorite: d.is_favorite ?? false,
+                        isArchived: d.is_archived ?? false,
+                        isPublished: d.is_published ?? false,
+                        isFullWidth: d.is_full_width ?? false,
+                        isSmallText: d.is_small_text ?? false,
+                        isLocked: d.is_locked ?? false,
+                        fontStyle: (d.font_style as any) ?? 'sans',
+                        updatedAt: d.updated_at || new Date().toISOString(),
+                    };
+
+                    if (remoteBlocks && remoteBlocks.length > 0) {
+                        remoteBlocks.forEach((b) => {
+                            doc.content.push({
+                                id: b.id,
+                                type: b.type as BlockType,
+                                content: b.content || '',
+                                props: (b.props as Record<string, any>) || {},
+                            });
+                        });
+                    }
+
+                    set((state) => ({
+                        documents: { ...state.documents, [id]: doc },
+                        isLoading: false
+                    }));
+                } catch (error: any) {
+                    console.error('Failed to fetch published document:', error);
+                    set({ error: error.message, isLoading: false });
+                }
+            },
+
             createDocument: async (parentId = null) => {
-                const { data: { user } } = await auth.getUser();
+                // Get cached user or fetch it
+                let user = get().currentUser;
+                if (!user) {
+                    const { data } = await auth.getUser();
+                    user = data.user;
+                    if (user) set({ currentUser: user });
+                }
+
                 if (!user) throw new Error("User not authenticated");
 
                 // Generate ID locally for optimistic update
@@ -164,9 +230,9 @@ export const useDocumentStore = create<DocumentState>()(
 
                 const newDoc: Document = {
                     id,
-                    title: 'Untitled',
+                    title: '',
                     icon: getRandomIcon(),
-                    coverImage: undefined, // No default cover image
+                    coverImage: undefined,
                     content: [{ id: blockId, type: 'text', content: '' }],
                     children: [],
                     parentId,
@@ -199,31 +265,33 @@ export const useDocumentStore = create<DocumentState>()(
                     return { documents, rootDocumentIds };
                 });
 
-                // Async Sync
-                try {
-                    await documentService.createDocument({
-                        id: newDoc.id,
-                        title: newDoc.title,
-                        parent_id: newDoc.parentId,
-                        user_id: user.id,
-                        is_expanded: newDoc.isExpanded,
-                        cover_image: newDoc.coverImage,
-                        icon: newDoc.icon,
-                        position: 0
-                    });
+                // Async Sync in background (non-blocking)
+                const userId = user.id;
+                (async () => {
+                    try {
+                        await documentService.createDocument({
+                            id: newDoc.id,
+                            title: newDoc.title,
+                            parent_id: newDoc.parentId,
+                            user_id: userId,
+                            is_expanded: newDoc.isExpanded,
+                            cover_image: newDoc.coverImage,
+                            icon: newDoc.icon,
+                            position: 0
+                        });
 
-                    await documentService.createBlock({
-                        id: blockId,
-                        document_id: newDoc.id,
-                        type: 'text',
-                        content: '',
-                        position: 0,
-                        props: {}
-                    });
-                } catch (error) {
-                    console.error("Failed to sync create document", error);
-                    // In a real app, you might want to revert the state here
-                }
+                        await documentService.createBlock({
+                            id: blockId,
+                            document_id: newDoc.id,
+                            type: 'text',
+                            content: '',
+                            position: 0,
+                            props: {}
+                        });
+                    } catch (error) {
+                        console.error("Failed to sync created document in background:", error);
+                    }
+                })();
 
                 return id;
             },
@@ -235,7 +303,14 @@ export const useDocumentStore = create<DocumentState>()(
                     return null;
                 }
 
-                const { data: { user } } = await auth.getUser();
+                // Get cached user or fetch it
+                let user = get().currentUser;
+                if (!user) {
+                    const { data } = await auth.getUser();
+                    user = data.user;
+                    if (user) set({ currentUser: user });
+                }
+
                 if (!user) throw new Error("User not authenticated");
 
                 // Generate IDs
@@ -348,6 +423,8 @@ export const useDocumentStore = create<DocumentState>()(
                     if (partial.isArchived !== undefined) updatePayload.is_archived = partial.isArchived;
                     if (partial.isPublished !== undefined) updatePayload.is_published = partial.isPublished;
                     if (partial.isFullWidth !== undefined) updatePayload.is_full_width = partial.isFullWidth;
+                    if (partial.isSmallText !== undefined) updatePayload.is_small_text = partial.isSmallText;
+                    if (partial.isLocked !== undefined) updatePayload.is_locked = partial.isLocked;
                     if (partial.fontStyle !== undefined) updatePayload.font_style = partial.fontStyle;
 
                     if (Object.keys(updatePayload).length > 0) {

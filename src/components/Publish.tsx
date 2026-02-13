@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useDocumentStore } from '../store/useDocumentStore';
 import { Globe, Check, Copy, X } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { toPageSlug } from '../lib/slugUtils';
 
 interface PublishProps {
     documentId: string;
@@ -15,7 +16,7 @@ export function Publish({ documentId }: PublishProps) {
 
     if (!document) return null;
 
-    const url = `${window.location.origin}/preview/${document.id}`;
+    const url = `${window.location.origin}/preview${toPageSlug(document.title, document.id)}`;
 
     const handlePublish = async () => {
         await updateDocument(documentId, { isPublished: !document.isPublished });
@@ -32,14 +33,14 @@ export function Publish({ documentId }: PublishProps) {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
-                    "flex items-center gap-1 text-sm font-medium transition-colors",
+                    "p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors",
                     document.isPublished
-                        ? "text-blue-500 hover:text-blue-600"
+                        ? "text-blue-500"
                         : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300"
                 )}
+                title={document.isPublished ? "Published" : "Share"}
             >
                 <Globe className="h-4 w-4" />
-                {document.isPublished ? "Published" : "Share"}
             </button>
 
             {isOpen && (

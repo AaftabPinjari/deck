@@ -12,6 +12,7 @@ import {
     Image,
     Code,
     Video,
+    FileText,
     SquareAsterisk,
     ChevronRight,
     Table,
@@ -30,6 +31,7 @@ interface SlashMenuProps {
 
 const ITEMS = [
     { type: 'text', label: 'Text', icon: Type, description: 'Just start writing with plain text.' },
+    { type: 'page', label: 'Page', icon: FileText, description: 'Embed a sub-page inside this page.' },
     { type: 'h1', label: 'Heading 1', icon: Heading1, description: 'Big section heading.' },
     { type: 'h2', label: 'Heading 2', icon: Heading2, description: 'Medium section heading.' },
     { type: 'h3', label: 'Heading 3', icon: Heading3, description: 'Small section heading.' },
@@ -48,6 +50,7 @@ const ITEMS = [
     { type: 'column_container', label: '3 Columns', icon: Table, description: 'Split content into 3 columns.', columns: 3 },
     { type: 'bookmark', label: 'Bookmark', icon: ExternalLink, description: 'Save a link with a preview.' },
     { type: 'table_of_contents', label: 'Table of Contents', icon: List, description: 'Overview of the page.' },
+    { type: 'breadcrumbs', label: 'Breadcrumbs', icon: ChevronRight, description: 'Show the page navigation path.' },
     { type: 'kanban', label: 'Kanban Board', icon: Layout, description: 'Track projects with a board.' },
 ] as const;
 

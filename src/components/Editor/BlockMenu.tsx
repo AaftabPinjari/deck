@@ -14,6 +14,7 @@ import {
     Code,
     Palette,
     Link,
+    FileText,
     ChevronRight,
     ChevronLeft
 } from 'lucide-react';
@@ -42,6 +43,7 @@ const TURN_INTO_OPTIONS = [
     { type: 'todo', label: 'To-do List', icon: CheckSquare },
     { type: 'quote', label: 'Quote', icon: Quote },
     { type: 'code', label: 'Code', icon: Code },
+    { type: 'page', label: 'Page', icon: FileText },
 ] as const;
 
 const TEXT_COLORS = [
