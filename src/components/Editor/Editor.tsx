@@ -18,7 +18,7 @@ import { DocumentHeader } from './DocumentHeader';
 import { cn } from '../../lib/utils';
 import { isLikelyMarkdown, parseMarkdownToBlocks } from '../../utils/markdownUtils';
 
-export function Editor() {
+export function Editor({ readOnly = false }: { readOnly?: boolean } = {}) {
     const { slug } = useParams();
     const navigate = useNavigate();
     const documentId = extractIdFromSlug(slug || '');
@@ -276,8 +276,28 @@ export function Editor() {
         setMentionMenu(null);
     }, [mentionMenu, documentId, updateBlockStore]);
 
-    const updateBlockType = useCallback((blockId: string, type: string) => {
+    const updateBlockType = useCallback(async (blockId: string, type: string) => {
         if (!documentId) return;
+
+        if (type === 'page') {
+            const doc = getDoc();
+            const block = doc?.content.find(b => b.id === blockId);
+            const initialTitle = block?.content?.replace(/<[^>]*>/g, '').trim() || ''; // Strip HTML tags for the title
+
+            const newDocId = await useDocumentStore.getState().createDocument(documentId);
+
+            // Update the new document's title with the block's previous content
+            if (initialTitle) {
+                await useDocumentStore.getState().updateDocument(newDocId, { title: initialTitle });
+            }
+
+            updateBlockStore(documentId, blockId, {
+                type: 'page',
+                content: newDocId
+            });
+            return;
+        }
+
         updateBlockStore(documentId, blockId, { type: type as BlockType });
     }, [documentId, updateBlockStore]);
 
@@ -454,12 +474,28 @@ export function Editor() {
         }
     }, [addBlock, deleteBlock, updateBlockType, documentId, deleteBlockStore, updateBlockStore]); // Stable dependencies
 
-    const handleSlashSelect = useCallback((type: BlockType, extraProps?: Record<string, any>) => {
+    const handleSlashSelect = useCallback(async (type: BlockType, extraProps?: Record<string, any>) => {
         if (slashMenuRef.current && documentId) {
             const menu = slashMenuRef.current;
             // Forcefully clear the DOM content immediately to prevent persistence
             const el = document.querySelector(`[data-block-id="${menu.blockId}"]`) as HTMLElement;
             if (el) el.innerHTML = '';
+
+            // Handle page block creation
+            if (type === 'page') {
+                const newDocId = await useDocumentStore.getState().createDocument(documentId);
+                updateBlockStore(documentId, menu.blockId, {
+                    type: 'page',
+                    content: newDocId // Store the target document ID in the block's content
+                });
+                setSlashMenu(null);
+                // Navigation is handled by createDocument usually, but we want to ensure we navigate to the new page
+                const newDoc = useDocumentStore.getState().documents[newDocId];
+                if (newDoc) {
+                    navigate(toPageSlug(newDoc.title, newDoc.id), { state: { focusTitle: true } });
+                }
+                return;
+            }
 
             // Handle column_container initialization
             if (type === 'column_container') {
@@ -597,7 +633,7 @@ export function Editor() {
             (!fontStyle || fontStyle === 'sans') && "font-sans"
         )}>
             {/* Header */}
-            <DocumentHeader documentId={documentId!} />
+            <DocumentHeader documentId={documentId!} readOnly={readOnly} />
 
             {/* Content area with proper padding */}
             <div className={cn(
@@ -692,6 +728,7 @@ export function Editor() {
                                                     onDuplicate={onDuplicateBlock}
                                                     index={index}
                                                     blockIndex={blockIndex}
+                                                    readOnly={readOnly || isLocked}
                                                     // blockIndex logic for numbering? 
                                                     // SortableBlock passes `index={index}` (drag index).
                                                     // Numbering is usually handled by CSS counters or the block itself using props.
@@ -713,7 +750,6 @@ export function Editor() {
                                                     // Numbering might be broken (will show linear index).
                                                     // I will accept this trade-off for now to fix the glitch, and fix numbering later.
 
-                                                    readOnly={isLocked}
                                                     className={cn(isGrouped ? "mt-0" : "mt-2")}
                                                 />
                                             </div>

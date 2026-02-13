@@ -8,9 +8,10 @@ import { useLocation } from 'react-router-dom';
 
 interface DocumentHeaderProps {
     documentId: string;
+    readOnly?: boolean;
 }
 
-export const DocumentHeader = memo(function DocumentHeader({ documentId }: DocumentHeaderProps) {
+export const DocumentHeader = memo(function DocumentHeader({ documentId, readOnly = false }: DocumentHeaderProps) {
     const currentDoc = useDocumentStore(state => state.documents[documentId]);
     const updateDocument = useDocumentStore(state => state.updateDocument);
     const titleInputRef = useRef<HTMLInputElement>(null);
@@ -60,12 +61,14 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                                     Change cover
                                 </button>
                             </CoverImagePicker>
-                            <button
-                                onClick={() => updateDocument(documentId, { coverImage: undefined })}
-                                className="text-xs bg-white/90 hover:bg-white dark:bg-neutral-800/90 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 px-2 py-1.5 rounded-md shadow-sm"
-                            >
-                                <X className="h-3.5 w-3.5" />
-                            </button>
+                            {!readOnly && (
+                                <button
+                                    onClick={() => updateDocument(documentId, { coverImage: undefined })}
+                                    className="text-xs bg-white/90 hover:bg-white dark:bg-neutral-800/90 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 px-2 py-1.5 rounded-md shadow-sm"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </button>
+                            )}
                         </div>
                     </>
                 )}
@@ -82,27 +85,29 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                     !hasCover && "pt-8" // Only add top padding if NO cover
                 )}>
                     {/* Controls */}
-                    <div className={cn(
-                        "flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity mb-2 text-xs text-neutral-500 select-none relative z-20",
-                        !hasIcon && !hasCover && "opacity-100"
-                    )}>
-                        {!hasIcon && (
-                            <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>
-                                <button className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
-                                    <span className="text-sm">😀</span>
-                                    Add icon
-                                </button>
-                            </IconPicker>
-                        )}
-                        {!hasCover && (
-                            <CoverImagePicker onChange={(url) => updateDocument(documentId, { coverImage: url })}>
-                                <button className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
-                                    <ImageIcon className="h-3.5 w-3.5" />
-                                    Add cover
-                                </button>
-                            </CoverImagePicker>
-                        )}
-                    </div>
+                    {!readOnly && (
+                        <div className={cn(
+                            "flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity mb-2 text-xs text-neutral-500 select-none relative z-20",
+                            !hasIcon && !hasCover && "opacity-100"
+                        )}>
+                            {!hasIcon && (
+                                <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>
+                                    <button className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
+                                        <span className="text-sm">😀</span>
+                                        Add icon
+                                    </button>
+                                </IconPicker>
+                            )}
+                            {!hasCover && (
+                                <CoverImagePicker onChange={(url) => updateDocument(documentId, { coverImage: url })}>
+                                    <button className="flex items-center gap-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors">
+                                        <ImageIcon className="h-3.5 w-3.5" />
+                                        Add cover
+                                    </button>
+                                </CoverImagePicker>
+                            )}
+                        </div>
+                    )}
 
                     {/* Icon/Emoji */}
                     {hasIcon && (
@@ -116,16 +121,22 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                                     hasCover && "drop-shadow-md" // Add shadow to help visual pop against cover
                                 )}
                             >
-                                <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>
+                                {readOnly ? (
                                     <span>{currentDoc.icon}</span>
-                                </IconPicker>
+                                ) : (
+                                    <IconPicker onChange={(icon) => updateDocument(documentId, { icon })}>
+                                        <span>{currentDoc.icon}</span>
+                                    </IconPicker>
+                                )}
                             </span>
-                            <button
-                                onClick={() => updateDocument(documentId, { icon: undefined })}
-                                className="absolute -top-2 -right-2 opacity-0 group-hover/icon:opacity-100 transition-opacity bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded-full p-1 shadow-sm"
-                            >
-                                <X className="h-3 w-3 text-neutral-600 dark:text-neutral-300" />
-                            </button>
+                            {!readOnly && (
+                                <button
+                                    onClick={() => updateDocument(documentId, { icon: undefined })}
+                                    className="absolute -top-2 -right-2 opacity-0 group-hover/icon:opacity-100 transition-opacity bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded-full p-1 shadow-sm"
+                                >
+                                    <X className="h-3 w-3 text-neutral-600 dark:text-neutral-300" />
+                                </button>
+                            )}
                         </div>
                     )}
 
@@ -139,14 +150,14 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                         ref={titleInputRef}
                         className={cn(
                             "w-full text-3xl md:text-4xl font-bold outline-none bg-transparent placeholder:text-neutral-300 text-neutral-800 dark:text-neutral-100 placeholder-opacity-50 break-words",
-                            currentDoc.isLocked && "pointer-events-none"
+                            (currentDoc.isLocked || readOnly) && "pointer-events-none"
                         )}
                         value={currentDoc.title}
-                        onChange={(e) => !currentDoc.isLocked && updateDocument(documentId, { title: e.target.value })}
+                        onChange={(e) => !currentDoc.isLocked && !readOnly && updateDocument(documentId, { title: e.target.value })}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 e.preventDefault();
-                                if (currentDoc.content.length > 0) {
+                                if (currentDoc.content.length > 0 && !readOnly) {
                                     const firstBlockId = currentDoc.content[0].id;
                                     const el = document.querySelector(`[data-block-id="${firstBlockId}"]`) as HTMLElement;
                                     el?.focus();
@@ -154,7 +165,7 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                             }
                         }}
                         placeholder="Untitled"
-                        readOnly={currentDoc.isLocked}
+                        readOnly={currentDoc.isLocked || readOnly}
                     />
                 </div>
             </div>

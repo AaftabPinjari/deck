@@ -14,7 +14,7 @@ export const documentService = {
         // Try to select with new columns first
         let { data: documents, error } = await supabase
             .from('documents')
-            .select('*, is_full_width, font_style, is_published')
+            .select('*, is_full_width, is_small_text, font_style, is_published, is_locked')
             .order('position', { ascending: true });
 
         if (error) {
@@ -115,5 +115,28 @@ export const documentService = {
 
         if (error) throw error;
         return data;
+    },
+
+    async getPublishedDocument(id: string) {
+        // Fetch published document
+        const { data: document, error: docError } = await supabase
+            .from('documents')
+            .select('*, is_full_width, is_small_text, font_style, is_published, is_locked')
+            .eq('id', id)
+            .eq('is_published', true)
+            .single();
+
+        if (docError) throw docError;
+
+        // Fetch blocks for this document
+        const { data: blocks, error: blocksError } = await supabase
+            .from('blocks')
+            .select('*')
+            .eq('document_id', id)
+            .order('position', { ascending: true });
+
+        if (blocksError) throw blocksError;
+
+        return { document, blocks };
     }
 };

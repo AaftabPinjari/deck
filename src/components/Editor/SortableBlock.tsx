@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from 'react';
+import { memo } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Block } from './Block';
 import { Block as BlockType } from '../../store/useDocumentStore';
@@ -23,16 +23,7 @@ interface SortableBlockProps {
     dropLine?: 'top' | 'bottom' | null;
 }
 
-export const SortableBlock = memo(function SortableBlock({ block, documentId, onChange, onKeyDown, onFocus, onTypeChange, onSlashMenu, onUpdate, onDelete, onDuplicate, index, blockIndex, className, readOnly, dropLine }: SortableBlockProps) {
-    const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-        const checkMobile = () => setIsMobile(window.matchMedia('(max-width: 768px)').matches);
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
-
+export const SortableBlock = memo(function SortableBlock({ block, documentId, onChange, onKeyDown, onFocus, onTypeChange, onSlashMenu, onUpdate, onDelete, onDuplicate, index, blockIndex, className, readOnly = false, dropLine }: SortableBlockProps) {
     return (
         <Draggable draggableId={block.id} index={index} isDragDisabled={readOnly}>
             {(provided, snapshot) => {

@@ -12,6 +12,8 @@ const BookmarkBlock = lazy(() => import('./BookmarkBlock').then(m => ({ default:
 const KanbanBlock = lazy(() => import('./KanbanBlock').then(m => ({ default: m.KanbanBlock })));
 const TableOfContentsBlock = lazy(() => import('./TableOfContentsBlock').then(m => ({ default: m.TableOfContentsBlock })));
 const CodeBlock = lazy(() => import('./CodeBlock').then(m => ({ default: m.CodeBlock })));
+const BreadcrumbsBlock = lazy(() => import('./BreadcrumbsBlock').then(m => ({ default: m.BreadcrumbsBlock })));
+const PageBlock = lazy(() => import('./PageBlock').then(m => ({ default: m.PageBlock })));
 
 interface BlockProps {
     block: BlockType;
@@ -404,6 +406,14 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
             ) : block.type === 'table_of_contents' ? (
                 <Suspense key="table_of_contents" fallback={<div className="w-full h-16 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
                     <TableOfContentsBlock block={block} documentId={documentId} readOnly={readOnly} />
+                </Suspense>
+            ) : block.type === 'breadcrumbs' ? (
+                <Suspense key="breadcrumbs" fallback={<div className="w-full h-8 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                    <BreadcrumbsBlock documentId={documentId} />
+                </Suspense>
+            ) : block.type === 'page' ? (
+                <Suspense key="page" fallback={<div className="w-full h-10 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                    <PageBlock blockId={block.id} documentId={documentId} />
                 </Suspense>
             ) : (
                 <div

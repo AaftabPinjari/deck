@@ -46,7 +46,7 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
     const isExpanded = document.isExpanded;
 
     const [isRenaming, setIsRenaming] = useState(false);
-    const [title, setTitle] = useState(document.title || 'Untitled');
+    const [title, setTitle] = useState(document.title);
 
     const handleCreateChild = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -63,11 +63,10 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
 
     const handleRename = async () => {
         setIsRenaming(false);
-        if (title.trim() === '') {
-            setTitle(document.title || 'Untitled');
-            return;
-        }
-        await updateDocument(document.id, { title: title });
+        // Allow empty title, but trim it
+        const trimmedTitle = title.trim();
+        if (trimmedTitle === document.title) return;
+        await updateDocument(document.id, { title: trimmedTitle });
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -143,7 +142,8 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
                                     }}
                                     onPointerDown={(e) => e.stopPropagation()}
                                     onMouseDown={(e) => e.stopPropagation()}
-                                    className="flex-1 h-6 px-1 bg-white dark:bg-neutral-900 border border-blue-500 rounded text-sm focus:outline-none"
+                                    placeholder="Untitled"
+                                    className="flex-1 h-6 px-1 bg-white dark:bg-neutral-900 border border-blue-500 rounded text-sm focus:outline-none placeholder:text-neutral-400"
                                 />
                             </div>
                         ) : (
@@ -281,7 +281,7 @@ export function Sidebar() {
 
     const handleAddPage = useCallback(async () => {
         const newId = await createDocument();
-        navigate(toPageSlug('Untitled', newId), { state: { focusTitle: true } });
+        navigate(toPageSlug('', newId), { state: { focusTitle: true } });
         setIsMobileSidebarOpen(false);
     }, [createDocument, navigate, setIsMobileSidebarOpen]);
 
@@ -362,6 +362,7 @@ export function Sidebar() {
                         <div className="flex-1 overflow-y-auto py-2">
                             <div className="px-2 mb-2 flex flex-col gap-1">
                                 <button onClick={() => toggleSettings(true)} className="flex items-center gap-2 w-full p-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"><Settings className="h-4 w-4" />Settings</button>
+                                <button onClick={() => setIsTemplatesOpen(true)} className="flex items-center gap-2 w-full p-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"><Layout className="h-4 w-4" />Templates</button>
                                 <button onClick={() => setIsTrashOpen(true)} className="flex items-center gap-2 w-full p-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"><Trash className="h-4 w-4" />Trash</button>
                                 <button onClick={() => fetchDocuments()} className="flex items-center gap-2 w-full p-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"><div className="h-4 w-4 flex items-center justify-center">↺</div>Refresh</button>
                             </div>
@@ -379,16 +380,20 @@ export function Sidebar() {
                                 </div>
                             )}
 
-                            <div className="px-3 py-1 text-xs font-semibold text-neutral-600 dark:text-neutral-500 uppercase">Private</div>
+                            <div className="group flex items-center justify-between px-3 py-1 text-xs font-semibold text-neutral-600 dark:text-neutral-500 uppercase">
+                                <span>Private</span>
+                                <button
+                                    onClick={handleAddPage}
+                                    className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded text-neutral-500 transition-colors"
+                                    title="Add a page"
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
 
                             <DragDropContext onBeforeCapture={onBeforeCapture} onDragEnd={onDragEnd}>
                                 <DocumentList onDeleteLabel={setDocToDelete} />
                             </DragDropContext>
-                        </div>
-
-                        <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 flex gap-2">
-                            <button onClick={handleAddPage} className="flex items-center gap-2 flex-1 p-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors"><Plus className="h-4 w-4" />New Page</button>
-                            <button onClick={() => setIsTemplatesOpen(true)} className="flex items-center gap-2 p-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors" title="Templates"><Layout className="h-4 w-4" /></button>
                         </div>
                     </>
                 )}
