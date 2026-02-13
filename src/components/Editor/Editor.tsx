@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useDocumentStore, BlockType } from '../../store/useDocumentStore';
-import { useSettingsStore } from '../../store/useSettingsStore';
 import { extractIdFromSlug, toPageSlug } from '../../lib/slugUtils';
 import { SortableBlock } from './SortableBlock'; // This will be used inside Draggable
 import { SlashMenu } from './SlashMenu';
@@ -323,7 +322,20 @@ export function Editor() {
 
         const currentContent = doc.content;
 
-        if (currentContent.length <= 1) return;
+        if (currentContent.length <= 1) {
+            const block = currentContent.find(b => b.id === blockId);
+            if (block) {
+                // If it's not already an empty text block, reset it
+                if (block.type !== 'text' || block.content !== '') {
+                    updateBlockStore(documentId, block.id, {
+                        type: 'text',
+                        content: '',
+                        props: {}
+                    });
+                }
+            }
+            return;
+        }
 
         const index = currentContent.findIndex(b => b.id === blockId);
         const prevBlock = currentContent[index - 1];
@@ -427,6 +439,12 @@ export function Editor() {
                     e.preventDefault();
                     if (slashMenuRef.current?.isOpen) setSlashMenu(null);
                     deleteBlock(blockId);
+                } else {
+                    // Last block logic - reset if not text
+                    if (block.type !== 'text') {
+                        e.preventDefault();
+                        updateBlockStore(documentId, blockId, { type: 'text', content: '', props: {} });
+                    }
                 }
             } else if (block && slashMenuRef.current?.isOpen) {
                 if (block.content === '/') {
@@ -638,10 +656,21 @@ export function Editor() {
 
                                     return visibleBlocks.map((block, index) => {
                                         let blockIndex: number | undefined = undefined;
+                                        const level = block.props?.level || 0;
+
+                                        // Reset counts for deeper levels when we are back at a higher level
+                                        // This ensures sub-lists restart when their parent item changes
+                                        for (let l = level + 1; l < 10; l++) {
+                                            counts[l] = 0;
+                                        }
+
                                         if (block.type === 'number') {
-                                            const level = block.props?.level || 0;
                                             counts[level] = (counts[level] || 0) + 1;
                                             blockIndex = counts[level];
+                                        } else {
+                                            // If the block is NOT a numbered list, reset the count for this level.
+                                            // This ensures that if we have [1. Item, Text, 1. Item], the second list starts at 1.
+                                            counts[level] = 0;
                                         }
 
                                         const isList = ['bullet', 'number', 'todo'].includes(block.type);
@@ -662,6 +691,7 @@ export function Editor() {
                                                     onDelete={deleteBlock}
                                                     onDuplicate={onDuplicateBlock}
                                                     index={index}
+                                                    blockIndex={blockIndex}
                                                     // blockIndex logic for numbering? 
                                                     // SortableBlock passes `index={index}` (drag index).
                                                     // Numbering is usually handled by CSS counters or the block itself using props.

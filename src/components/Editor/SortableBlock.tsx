@@ -17,12 +17,13 @@ interface SortableBlockProps {
     onDelete?: (id: string) => void;
     onDuplicate?: (id: string) => void;
     index: number; // Index is required for Draggable
+    blockIndex?: number;
     className?: string;
     readOnly?: boolean;
     dropLine?: 'top' | 'bottom' | null;
 }
 
-export const SortableBlock = memo(function SortableBlock({ block, documentId, onChange, onKeyDown, onFocus, onTypeChange, onSlashMenu, onUpdate, onDelete, onDuplicate, index, className, readOnly, dropLine }: SortableBlockProps) {
+export const SortableBlock = memo(function SortableBlock({ block, documentId, onChange, onKeyDown, onFocus, onTypeChange, onSlashMenu, onUpdate, onDelete, onDuplicate, index, blockIndex, className, readOnly, dropLine }: SortableBlockProps) {
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -76,6 +77,7 @@ export const SortableBlock = memo(function SortableBlock({ block, documentId, on
                             onDelete={onDelete}
                             onDuplicate={onDuplicate}
                             index={index}
+                            blockIndex={blockIndex}
                             // Pass drag handle props to Block for the "six-dot" grip on desktop AND mobile
                             dragHandleProps={provided.dragHandleProps}
                             readOnly={readOnly}

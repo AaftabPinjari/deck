@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { documentService } from '../services/documentService';
 import { auth } from '../services/auth';
 import { getTemplateById } from '../data/templates';
-import { getRandomCover, getRandomIcon } from '../lib/defaults';
+import { getRandomIcon } from '../lib/defaults';
 
 export type BlockType = 'text' | 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'todo' | 'quote' | 'divider' | 'image' | 'code' | 'callout' | 'video' | 'toggle' | 'table' | 'column_container' | 'bookmark' | 'kanban' | 'table_of_contents';
 
@@ -341,8 +341,8 @@ export const useDocumentStore = create<DocumentState>()(
                 try {
                     const updatePayload: any = {};
                     if (partial.title !== undefined) updatePayload.title = partial.title;
-                    if (partial.icon !== undefined) updatePayload.icon = partial.icon;
-                    if (partial.coverImage !== undefined) updatePayload.cover_image = partial.coverImage;
+                    if (Object.prototype.hasOwnProperty.call(partial, 'icon')) updatePayload.icon = partial.icon ?? null;
+                    if (Object.prototype.hasOwnProperty.call(partial, 'coverImage')) updatePayload.cover_image = partial.coverImage ?? null;
                     if (partial.isExpanded !== undefined) updatePayload.is_expanded = partial.isExpanded;
                     if (partial.isFavorite !== undefined) updatePayload.is_favorite = partial.isFavorite;
                     if (partial.isArchived !== undefined) updatePayload.is_archived = partial.isArchived;
@@ -351,7 +351,10 @@ export const useDocumentStore = create<DocumentState>()(
                     if (partial.fontStyle !== undefined) updatePayload.font_style = partial.fontStyle;
 
                     if (Object.keys(updatePayload).length > 0) {
-                        await documentService.updateDocument(id, updatePayload);
+                        await documentService.updateDocument(id, {
+                            ...updatePayload,
+                            updated_at: new Date().toISOString()
+                        });
                     }
                 } catch (error) {
                     console.error("Failed to sync update document:", error);
@@ -415,10 +418,21 @@ export const useDocumentStore = create<DocumentState>()(
             },
 
             archiveDocument: async (id) => {
-                const doc = get().documents[id];
-                if (doc) {
-                    await get().updateDocument(id, { isArchived: true, isFavorite: false }); // Unfavorite when archiving
-                }
+                const archiveRecursive = async (docId: string) => {
+                    const doc = get().documents[docId];
+                    if (!doc) return;
+
+                    // Archive and unfavorite locally & sync
+                    // We call updateDocument which handles both local state and sync
+                    await get().updateDocument(docId, { isArchived: true, isFavorite: false });
+
+                    // Archive all children
+                    for (const childId of doc.children) {
+                        await archiveRecursive(childId);
+                    }
+                };
+
+                await archiveRecursive(id);
             },
 
             restoreDocument: async (id) => {
@@ -439,7 +453,7 @@ export const useDocumentStore = create<DocumentState>()(
                     const doc = documents[id];
                     if (!doc) return {};
 
-                    // Remove from old parent
+                    // 1. Remove from old parent
                     if (doc.parentId) {
                         const oldParent = documents[doc.parentId];
                         if (oldParent) {
@@ -452,12 +466,31 @@ export const useDocumentStore = create<DocumentState>()(
                         state.rootDocumentIds = state.rootDocumentIds.filter(rootId => rootId !== id);
                     }
 
-                    // Add to new parent
+                    // 2. Calculate physical index in new parent/root
+                    // Filter archived items to match the UI's perspective
+                    const targetRawList = newParentId
+                        ? [...(documents[newParentId]?.children || [])]
+                        : [...state.rootDocumentIds];
+
+                    // The newIndex from DnD is relative to visible (non-archived) items
+                    const visibleInTarget = targetRawList.filter(childId =>
+                        documents[childId] && !documents[childId].isArchived
+                    );
+
+                    let physicalIndex;
+                    if (newIndex >= visibleInTarget.length) {
+                        physicalIndex = targetRawList.length; // Append at the end of physical list
+                    } else {
+                        const targetDocId = visibleInTarget[newIndex];
+                        physicalIndex = targetRawList.indexOf(targetDocId);
+                    }
+
+                    // 3. Add to new parent at physical index
                     if (newParentId) {
                         const newParent = documents[newParentId];
                         if (newParent) {
                             const newChildren = [...newParent.children];
-                            newChildren.splice(newIndex, 0, id);
+                            newChildren.splice(physicalIndex, 0, id);
                             documents[newParentId] = {
                                 ...newParent,
                                 children: newChildren,
@@ -465,7 +498,7 @@ export const useDocumentStore = create<DocumentState>()(
                             };
                         }
                     } else {
-                        state.rootDocumentIds.splice(newIndex, 0, id);
+                        state.rootDocumentIds.splice(physicalIndex, 0, id);
                     }
 
                     // Update document itself
@@ -476,8 +509,9 @@ export const useDocumentStore = create<DocumentState>()(
 
                 // Sync
                 try {
+                    const now = new Date().toISOString();
                     // 1. Update parent_id of the moved document
-                    await documentService.updateDocument(id, { parent_id: newParentId });
+                    await documentService.updateDocument(id, { parent_id: newParentId, updated_at: now });
 
                     // 2. Update positions of all siblings in the new destination
                     const state = get();
@@ -488,7 +522,7 @@ export const useDocumentStore = create<DocumentState>()(
                     if (siblingsToCheck) {
                         // Update position for each sibling to match the current array order
                         const updates = siblingsToCheck.map((docId, index) =>
-                            documentService.updateDocument(docId, { position: index })
+                            documentService.updateDocument(docId, { position: index, updated_at: now })
                         );
 
                         // Run in parallel (for small lists this is fine)
@@ -677,16 +711,22 @@ export const useDocumentStore = create<DocumentState>()(
                 });
 
                 // Sync
-                try {
-                    await documentService.createBlock({
-                        id: block.id,
-                        document_id: docId,
-                        type: block.type,
-                        content: block.content,
-                        props: block.props,
-                        position: index
-                    });
-                } catch (e) { console.error(e); }
+                const state = get();
+                const doc = state.documents[docId];
+                if (doc) {
+                    try {
+                        const blocksToSync = doc.content.map((b, i) => ({
+                            id: b.id,
+                            document_id: docId,
+                            type: b.type,
+                            content: b.content,
+                            props: b.props,
+                            position: i // Explicitly set position
+                        }));
+                        await documentService.upsertBlocks(blocksToSync);
+                        await documentService.updateDocument(docId, { updated_at: new Date().toISOString() });
+                    } catch (e) { console.error(e); }
+                }
             },
 
             updateBlock: async (docId, blockId, partialBlock) => {
@@ -713,6 +753,7 @@ export const useDocumentStore = create<DocumentState>()(
                     if (partialBlock.props !== undefined) payload.props = partialBlock.props;
 
                     await documentService.updateBlock(blockId, payload);
+                    await documentService.updateDocument(docId, { updated_at: new Date().toISOString() });
                 } catch (e) { console.error(e); }
             },
 
@@ -729,6 +770,25 @@ export const useDocumentStore = create<DocumentState>()(
 
                 try {
                     await documentService.deleteBlock(blockId);
+
+                    // Sync remaining blocks positions
+                    const state = get();
+                    const doc = state.documents[docId];
+                    if (doc) {
+                        const blocksToSync = doc.content.map((b, i) => ({
+                            id: b.id,
+                            document_id: docId,
+                            type: b.type,
+                            content: b.content,
+                            props: b.props,
+                            position: i
+                        }));
+                        // We only arguably need to update those *after* the deleted one, but bulk update is safer/easier
+                        if (blocksToSync.length > 0) {
+                            await documentService.upsertBlocks(blocksToSync);
+                        }
+                        await documentService.updateDocument(docId, { updated_at: new Date().toISOString() });
+                    }
                 } catch (e) { console.error(e); }
             },
 
@@ -762,14 +822,22 @@ export const useDocumentStore = create<DocumentState>()(
 
                 // Sync
                 try {
-                    await documentService.createBlock({
-                        id: newBlockId,
-                        document_id: docId,
-                        type: newBlock.type,
-                        content: newBlock.content,
-                        props: newBlock.props,
-                        position: blockToIndex + 1
-                    });
+                    // Instead of just createBlock, we should reuse the sync logic to ensure all positions are correct
+                    // But createBlock is fine if we immediately re-sync positions. 
+                    // Or just use upsertBlocks for the whole list including the new one.
+                    const updatedDoc = get().documents[docId];
+                    if (updatedDoc) {
+                        const blocksToSync = updatedDoc.content.map((b, i) => ({
+                            id: b.id,
+                            document_id: docId,
+                            type: b.type,
+                            content: b.content,
+                            props: b.props,
+                            position: i
+                        }));
+                        await documentService.upsertBlocks(blocksToSync);
+                        await documentService.updateDocument(docId, { updated_at: new Date().toISOString() });
+                    }
                 } catch (e) { console.error(e); }
 
                 return newBlockId;
@@ -792,10 +860,23 @@ export const useDocumentStore = create<DocumentState>()(
                     };
                 });
 
-                // Note: For full production readiness, we need to update positions of all affected blocks in DB.
-                // For MVP, if we reload, order might be lost if we don't save it.
-                // A simple fix for now is to update the position of the moved block, but that's not enough for swapping.
-                // Let's leave full reorder sync as a TODO or implement a bulk update if crucial.
+                // Sync all positions
+                const state = get();
+                const doc = state.documents[docId];
+                if (doc) {
+                    try {
+                        const blocksToSync = doc.content.map((b, i) => ({
+                            id: b.id,
+                            document_id: docId,
+                            type: b.type,
+                            content: b.content,
+                            props: b.props,
+                            position: i
+                        }));
+                        await documentService.upsertBlocks(blocksToSync);
+                        await documentService.updateDocument(docId, { updated_at: new Date().toISOString() });
+                    } catch (e) { console.error("Failed to sync block order after move", e); }
+                }
             },
 
             reset: () => {
