@@ -43,9 +43,10 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                         <div
                             className="absolute inset-0 bg-cover bg-center"
                             style={{
-                                backgroundImage: currentDoc.coverImage?.startsWith('http')
-                                    ? `url(${currentDoc.coverImage})`
-                                    : currentDoc.coverImage
+                                backgroundColor: currentDoc.coverImage?.startsWith('#') ? currentDoc.coverImage : undefined,
+                                backgroundImage: !currentDoc.coverImage?.startsWith('#')
+                                    ? (currentDoc.coverImage?.startsWith('http') ? `url(${currentDoc.coverImage})` : currentDoc.coverImage)
+                                    : undefined
                             }}
                         />
                         {/* Gradient overlay */}
@@ -53,7 +54,7 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
 
                         {/* Cover controls */}
                         <div className="absolute bottom-3 right-4 opacity-0 group-hover/cover:opacity-100 transition-opacity flex gap-2">
-                            <CoverImagePicker onChange={(url) => updateDocument(documentId, { coverImage: url })}>
+                            <CoverImagePicker align="right" onChange={(url) => updateDocument(documentId, { coverImage: url })}>
                                 <button className="text-xs bg-white/90 hover:bg-white dark:bg-neutral-800/90 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 px-3 py-1.5 rounded-md shadow-sm flex items-center gap-1.5 font-medium">
                                     <ImageIcon className="h-3.5 w-3.5" />
                                     Change cover
@@ -82,7 +83,7 @@ export const DocumentHeader = memo(function DocumentHeader({ documentId }: Docum
                 )}>
                     {/* Controls */}
                     <div className={cn(
-                        "flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity mb-2 text-xs text-neutral-500 select-none relative z-10",
+                        "flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity mb-2 text-xs text-neutral-500 select-none relative z-20",
                         !hasIcon && !hasCover && "opacity-100"
                     )}>
                         {!hasIcon && (

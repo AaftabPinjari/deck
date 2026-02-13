@@ -10,6 +10,7 @@ import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-sql';
 import { Check, Copy, ChevronDown } from 'lucide-react';
 import { Block as BlockType } from '../../store/useDocumentStore';
+import { cn } from '../../lib/utils';
 
 interface CodeBlockProps {
     block: BlockType;
@@ -33,6 +34,7 @@ const LANGUAGES = [
 export const CodeBlock = memo(function CodeBlock({ block, onChange, onUpdate, readOnly }: CodeBlockProps) {
     const [copied, setCopied] = useState(false);
     const codeRef = useRef<HTMLElement>(null);
+    const preRef = useRef<HTMLPreElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [language, setLanguage] = useState(block.props?.language || 'javascript');
 
@@ -56,6 +58,12 @@ export const CodeBlock = memo(function CodeBlock({ block, onChange, onUpdate, re
 
     const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         onChange(block.id, e.target.value);
+    };
+
+    const handleScroll = () => {
+        if (preRef.current && textareaRef.current) {
+            preRef.current.scrollLeft = textareaRef.current.scrollLeft;
+        }
     };
 
     // Auto-resize textarea
@@ -105,7 +113,11 @@ export const CodeBlock = memo(function CodeBlock({ block, onChange, onUpdate, re
             <div className="relative min-h-[3em]">
                 {/* Syntax Highlighted View */}
                 <pre
-                    className={`!m-0 !p-4 !bg-transparent !overflow-x-auto`}
+                    ref={preRef}
+                    className={cn(
+                        "!m-0 !p-4 !bg-transparent",
+                        readOnly ? "!overflow-x-auto" : "!overflow-hidden"
+                    )}
                     aria-hidden="true"
                 >
                     <code
@@ -122,7 +134,8 @@ export const CodeBlock = memo(function CodeBlock({ block, onChange, onUpdate, re
                         ref={textareaRef}
                         value={block.content}
                         onChange={handleInput}
-                        className="absolute inset-0 w-full h-full p-4 bg-transparent text-transparent caret-white outline-none resize-none overflow-hidden font-mono text-[inherit] leading-[inherit] whitespace-pre z-10"
+                        onScroll={handleScroll}
+                        className="absolute inset-0 w-full h-full p-4 bg-transparent text-transparent caret-white outline-none resize-none overflow-x-auto overflow-y-hidden font-mono text-[inherit] leading-[inherit] whitespace-pre z-10 scrollbar-hide"
                         spellCheck={false}
                         autoCapitalize="off"
                         autoComplete="off"

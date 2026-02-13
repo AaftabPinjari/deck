@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { Image, Upload, Link as LinkIcon, X, Loader2 } from 'lucide-react';
+import { Upload, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUpload } from '../../hooks/useUpload';
 
@@ -7,6 +7,7 @@ interface CoverImagePickerProps {
     onChange: (url: string) => void;
     onRemove?: () => void;
     children: React.ReactNode;
+    align?: 'left' | 'right';
 }
 
 // Curated gradients and solid colors for MVP
@@ -28,7 +29,7 @@ const COVERS = [
     "https://images.unsplash.com/photo-1501854140884-074bf6bfa802?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
 ];
 
-export function CoverImagePicker({ onChange, onRemove, children }: CoverImagePickerProps) {
+export function CoverImagePicker({ onChange, onRemove, children, align = 'left' }: CoverImagePickerProps) {
     const [isOpen, setIsOpen] = useState(false);
     const popoverRef = useRef<HTMLDivElement>(null);
     const [activeTab, setActiveTab] = useState<'gallery' | 'upload' | 'link'>('gallery');
@@ -78,7 +79,10 @@ export function CoverImagePicker({ onChange, onRemove, children }: CoverImagePic
             {isOpen && (
                 <div
                     ref={popoverRef}
-                    className="absolute z-50 top-full mt-2 left-0 w-[400px] bg-white dark:bg-neutral-900 shadow-xl rounded-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden"
+                    className={cn(
+                        "fixed z-50 top-20 left-1/2 -translate-x-1/2 w-[calc(100vw-64px)] md:w-[400px] bg-white dark:bg-neutral-900 shadow-xl rounded-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden md:absolute md:top-full md:left-auto md:right-auto md:translate-x-0 md:translate-y-0 md:mt-2 md:w-[400px]",
+                        align === 'left' ? "md:left-0" : "md:right-0"
+                    )}
                 >
                     <div className="flex items-center border-b border-neutral-200 dark:border-neutral-800">
                         <button

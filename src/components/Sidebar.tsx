@@ -38,8 +38,11 @@ interface DocumentItemProps {
 
 const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteLabel, index }: DocumentItemProps) {
     const navigate = useNavigate();
-    const { createDocument, toggleExpand, toggleFavorite, updateDocument } = useDocumentStore();
-    const hasChildren = document.children.length > 0;
+    const { documents, createDocument, toggleExpand, toggleFavorite, updateDocument } = useDocumentStore();
+    const hasChildren = useMemo(() =>
+        document.children.some(childId => documents[childId] && !documents[childId].isArchived),
+        [document.children, documents]
+    );
     const isExpanded = document.isExpanded;
 
     const [isRenaming, setIsRenaming] = useState(false);
@@ -101,7 +104,7 @@ const DocumentItem = memo(function DocumentItem({ document, level = 0, onDeleteL
                             snapshot.combineTargetFor && "bg-transparent"
                         )}
                         style={{ paddingLeft: `${level * 16 + 8}px` }}
-                        onContextMenu={(e) => {
+                        onContextMenu={() => {
                             // Prevent context menu to allow regular interaction if needed
                         }}
                     >

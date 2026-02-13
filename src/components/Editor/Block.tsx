@@ -26,13 +26,14 @@ interface BlockProps {
     onDelete?: (id: string) => void;
     onDuplicate?: (id: string) => void;
     index?: number;
+    blockIndex?: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     dragHandleProps?: any;
     readOnly?: boolean;
     className?: string;
 }
 
-export const Block = memo(function Block({ block, documentId, onChange, onKeyDown, onFocus, onTypeChange, onSlashMenu, onUpdate, onDelete, onDuplicate, index, dragHandleProps, className, readOnly }: BlockProps) {
+export const Block = memo(function Block({ block, documentId, onChange, onKeyDown, onFocus, onTypeChange, onSlashMenu, onUpdate, onDelete, onDuplicate, index, blockIndex, dragHandleProps, className, readOnly }: BlockProps) {
     const contentRef = useRef<HTMLDivElement>(null);
     const [copied, setCopied] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -234,7 +235,7 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                     <span className="text-xl leading-snug">•</span>
                 )}
                 {block.type === 'number' && (
-                    <span className="font-medium text-neutral-600">{index ? `${index}.` : '1.'}</span>
+                    <span className="font-medium text-neutral-600">{blockIndex !== undefined ? `${blockIndex}.` : (index ? `${index}.` : '1.')}</span>
                 )}
                 {block.type === 'todo' && (
                     <div
@@ -277,7 +278,7 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
             </div>
 
             {block.type === 'image' ? (
-                <div className="w-full">
+                <div key="image" className="w-full">
                     {block.content ? (
                         <ResizableImage
                             src={block.content}
@@ -312,13 +313,13 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                     )}
                 </div>
             ) : block.type === 'divider' ? (
-                <hr className="w-full border-t border-neutral-300 dark:border-neutral-700 my-2" />
+                <hr key="divider" className="w-full border-t border-neutral-300 dark:border-neutral-700 my-2" />
             ) : block.type === 'code' ? (
-                <Suspense fallback={<div className="w-full h-16 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                <Suspense key="code" fallback={<div className="w-full h-16 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
                     <CodeBlock block={block} onChange={onChange} onUpdate={readOnly ? undefined : onUpdate!} readOnly={readOnly} />
                 </Suspense>
             ) : block.type === 'quote' ? (
-                <div className="relative w-full group/quote flex-1">
+                <div key="quote" className="relative w-full group/quote flex-1">
                     <div className="absolute right-2 top-0 opacity-0 group-hover/quote:opacity-100 transition-opacity z-10">
                         <button
                             onClick={handleCopy}
@@ -347,7 +348,7 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                     />
                 </div>
             ) : block.type === 'video' ? (
-                <div className="w-full">
+                <div key="video" className="w-full">
                     {block.content ? (
                         <div className="relative w-full aspect-video bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden">
                             <iframe
@@ -368,7 +369,7 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                     )}
                 </div>
             ) : block.type === 'callout' ? (
-                <div className="w-full p-4 bg-neutral-100 dark:bg-neutral-800 rounded-md flex items-start gap-3">
+                <div key="callout" className="w-full p-4 bg-neutral-100 dark:bg-neutral-800 rounded-md flex items-start gap-3">
                     <div className="flex-shrink-0 mt-1">
                         <Info className="w-5 h-5 text-neutral-500" />
                     </div>
@@ -385,27 +386,28 @@ export const Block = memo(function Block({ block, documentId, onChange, onKeyDow
                     />
                 </div>
             ) : block.type === 'table' ? (
-                <Suspense fallback={<div className="w-full h-20 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                <Suspense key="table" fallback={<div className="w-full h-20 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
                     <TableBlock block={block} onUpdate={readOnly ? undefined : onUpdate!} readOnly={readOnly} />
                 </Suspense>
             ) : block.type === 'column_container' ? (
-                <Suspense fallback={<div className="w-full h-20 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                <Suspense key="column_container" fallback={<div className="w-full h-20 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
                     <ColumnBlock block={block} documentId={documentId} onUpdate={readOnly ? undefined : onUpdate!} readOnly={readOnly} />
                 </Suspense>
             ) : block.type === 'bookmark' ? (
-                <Suspense fallback={<div className="w-full h-16 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                <Suspense key="bookmark" fallback={<div className="w-full h-16 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
                     <BookmarkBlock block={block} onUpdate={readOnly ? undefined : onUpdate!} onKeyDown={onKeyDown} readOnly={readOnly} />
                 </Suspense>
             ) : block.type === 'kanban' ? (
-                <Suspense fallback={<div className="w-full h-32 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                <Suspense key="kanban" fallback={<div className="w-full h-32 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
                     <KanbanBlock block={block} documentId={documentId} onUpdate={readOnly ? undefined : onUpdate!} readOnly={readOnly} />
                 </Suspense>
             ) : block.type === 'table_of_contents' ? (
-                <Suspense fallback={<div className="w-full h-16 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
+                <Suspense key="table_of_contents" fallback={<div className="w-full h-16 bg-neutral-100 dark:bg-neutral-800 rounded-md animate-pulse" />}>
                     <TableOfContentsBlock block={block} documentId={documentId} readOnly={readOnly} />
                 </Suspense>
             ) : (
                 <div
+                    key="default"
                     ref={contentRef}
                     contentEditable={!readOnly}
                     suppressContentEditableWarning
