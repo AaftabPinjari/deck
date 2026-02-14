@@ -61,12 +61,12 @@ export function Preview() {
                     <span className="font-semibold text-neutral-900 dark:text-neutral-100">Deck</span>
                 </Link>
                 <div className="flex items-center gap-4">
-                    <span className="text-xs text-neutral-500 hidden sm:inline">
+                    <span className="text-sm text-neutral-500 dark:text-neutral-400 hidden sm:inline">
                         Published with Deck
                     </span>
                     <Link
                         to="/login"
-                        className="px-3 py-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors text-sm font-medium"
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm"
                     >
                         Log in
                     </Link>
